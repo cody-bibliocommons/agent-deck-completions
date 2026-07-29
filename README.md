@@ -12,8 +12,10 @@ that was done and how to regenerate after an upstream release.
 zsh/_agent-deck         zsh completion (compdef, descriptions, per-tag grouping)
 bash/agent-deck.bash    bash completion (bash-completion v2 aware, works without it)
 install.sh              symlink installer
-tests/comptest.zsh      drive the zsh completion through a pty and print candidates
-tests/comptest.bash     drive the bash completion function and print candidates
+tests/run.bash          assertion suite for the bash completion
+tests/run.zsh           assertion suite for the zsh completion
+tests/comptest.bash     print the candidates for one command line (bash)
+tests/comptest.zsh      print the candidates for one command line (zsh)
 ```
 
 ## Install
@@ -160,9 +162,20 @@ Internal plumbing commands (`hook-handler`, `codex-notify`, `notify-daemon`,
 ## Testing
 
 ```bash
-tests/comptest.zsh  'agent-deck session '     # zsh, through a pty
-tests/comptest.bash 'agent-deck mcp attach '  # bash, direct function call
+tests/run.bash          # 40 assertions, one bash process, ~2s
+tests/run.zsh           # 17 assertions through a single pty, ~1min
 zsh -n zsh/_agent-deck && bash -n bash/agent-deck.bash
+```
+
+Both suites exit non-zero on failure and take an optional filter
+(`tests/run.bash session`). Cases that need live sessions create and remove a
+throwaway profile, so your real sessions are untouched.
+
+To eyeball one command line instead of asserting on it:
+
+```bash
+tests/comptest.zsh  'agent-deck session '
+tests/comptest.bash 'agent-deck mcp attach '
 ```
 
 ## Known limitations

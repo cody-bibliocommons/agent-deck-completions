@@ -9,8 +9,9 @@ break them if you "clean them up"**.
 Two hand-maintained shell completion scripts for the third-party CLI
 [`agent-deck`](https://github.com/asheshgoplani/agent-deck):
 
-- `zsh/_agent-deck` — zsh, `#compdef` style, `_arguments`-based, ~1120 lines
-- `bash/agent-deck.bash` — bash, single `_agent_deck` function, ~470 lines
+- `zsh/_agent-deck` — zsh, `#compdef` style, `_arguments`-based, ~1110 lines
+- `bash/agent-deck.bash` — bash, ~630 lines, a small `_agent_deck` entry point
+  plus one handler function per command
 
 They are installed by symlink (`install.sh`), so the repo is the single source of
 truth: a `git pull` updates the live completions with no reinstall.
@@ -109,15 +110,15 @@ was a real bug found in testing; do not "simplify" it back.
 1. **`status` is a read-only variable in zsh** (it aliases `$?`). `local status`
    inside a completion function aborts it with
    `read-only variable: status`. The session parser uses `sstate`.
-2. **zsh needs a real terminal to complete.** `tests/comptest.zsh` uses
+2. **zsh needs a real terminal to complete.** The zsh harnesses use
    `zsh/zpty`. `PS1` passed to `zpty` must contain no spaces and no `>` — zpty
    parses its own argv and a redirect character makes it fail with
    `parse error near '>'`.
 3. **bash keeps an escaped word whole.** `foo Comp\ Test <TAB>` gives
    `COMP_WORDS=(foo 'Comp\ Test' '')` — verified against a real interactive bash
    with a probe completion, not assumed. So counting positional words is safe,
-   and `tests/comptest.bash` reproduces that splitting (it `eval`s the line and
-   re-escapes with `printf %q`) instead of a naive `read -a`.
+   and the bash harnesses reproduce that splitting (they `eval` the line and
+   re-escape with `printf %q`) instead of using a naive `read -a`.
 4. **Spaces in session titles.** bash candidates are emitted `printf %q`-escaped
    and `$cur` is stripped of backslashes before prefix-matching, so a half-typed
    `Comp\ Te` still matches `Comp Test`. Don't switch to a bare
@@ -133,7 +134,24 @@ was a real bug found in testing; do not "simplify" it back.
    value-taking options with no meaningful completer, which suppresses bash's
    default filename fallback. Returning non-zero there would offer files for
    `--title`.
-8. **Internal plumbing commands are intentionally omitted** from the command
+8. **`__agent_deck_offer_options` and `__agent_deck_offer_subcommands` end with
+   an explicit `return 0`.** Without it they inherit `compgen`'s exit status,
+   which is 1 when nothing matches the prefix, so the caller falls through to
+   positional completion. The window is narrow — a positional candidate has to
+   prefix-match a word starting with `-` — but it is reachable: a session titled
+   `-dash-session` is legal, and `session start -d<TAB>` then offers that session
+   instead of stopping at the (non-matching) option list. `tests/run.bash` pins
+   it with a dash-titled fixture session; verified red-green by removing the
+   `return 0`. Note that `--zz`-style cases pin nothing here, since no positional
+   candidate can match that prefix either way.
+9. **`__agent_deck_scan_line` and `__agent_deck_remember_profile` assign to the
+   caller's locals** (`pos`, `__agent_deck_gopts`) rather than printing. That is
+   the same output-parameter convention bash-completion's own `_init_completion`
+   uses; the alternative is a subshell per keystroke. The `_init_completion`
+   block itself is deliberately left inline in `_agent_deck` — extracting it
+   would hide the fact that it assigns `cur`/`prev`/`words`/`cword` into that
+   scope.
+10. **Internal plumbing commands are intentionally omitted** from the command
    list: `hook-handler`, `codex-notify`, `notify-daemon`, `run-task`,
    `mcp-proxy`, `creds-refresh`. They exist in `main.go`'s switch but are not
    for humans. Don't "fix" the missing entries.
@@ -147,27 +165,25 @@ zsh -n zsh/_agent-deck
 bash -n bash/agent-deck.bash
 ```
 
-Behavioural checks — these are the ones that catch real breakage:
+Behavioural checks — these are the ones that catch real breakage. Both suites are
+self-validating (non-zero exit on failure) and accept a substring filter:
 
 ```bash
-tests/comptest.zsh  'agent-deck '                       # top-level commands
-tests/comptest.zsh  'agent-deck session '               # nested subcommands
-tests/comptest.zsh  'agent-deck add -c '                # enum values
-tests/comptest.zsh  'agent-deck -p <profile> session start '   # profile-scoped dynamic
-tests/comptest.bash 'agent-deck fleet recover --'       # option list
-tests/comptest.bash 'agent-deck -p <profile> group move Comp\ Test '  # positional past an escaped arg
+tests/run.bash          # 40 assertions, single bash process, ~2s
+tests/run.zsh           # 17 assertions, single pty, ~1min
+tests/run.bash session  # just the session cases
 ```
 
-To exercise session-dependent paths without touching the user's real sessions,
-create a throwaway profile — `agent-deck add` only writes a registry entry, it
-does not start tmux:
+Each suite creates a throwaway profile named `_completion_suite` for the cases
+that need a live session and removes it on exit, so a developer's real sessions
+are never touched. This is safe because `agent-deck add` only writes a registry
+entry — it does not start tmux.
 
-```bash
-agent-deck -p _tmptest add -t "Comp Test" -c claude /tmp
-# … run tests …
-agent-deck -p _tmptest remove "Comp Test"
-printf 'y\n' | agent-deck profile delete _tmptest
-```
+Cost note: do **not** rewrite the suites as one process per case. Sourcing
+bash-completion pulls in `/etc/bash_completion.d/*` (one entry on this machine
+makes a network call), and each zsh case needs a fresh `compinit`; per-case
+processes pushed the bash suite past two minutes, which is why both suites share
+one shell. `tests/comptest.{bash,zsh}` remain for eyeballing a single line.
 
 Confirm a real-shell install with
 `zsh -ic 'print -r -- ${_comps[agent-deck]}'` (expect `_agent-deck`) and
@@ -180,11 +196,30 @@ Confirm a real-shell install with
   group, each repeating the pattern for its own subcommands. Aliases are listed
   as separate `_describe` entries with identical descriptions, which makes zsh
   collapse them into one row (`list  ls  -- list all sessions`).
-- **bash** cannot nest that way, so it computes the positional word list once
-  (skipping options and their values) and switches on
-  `${pos[0]}`/`${pos[1]}`/`${pos[2]}` with `${#pos[@]}` as the argument index.
-  `${#pos[@]}` counts positionals strictly *before* the word being completed, so
-  `== 1` means "completing the first argument of the command".
+- **bash** cannot nest that way. `_agent_deck` does four things and stops:
+  initialise `cur`/`prev`/`words`, scan the line into `pos[]`, offer the value for
+  an option in `$prev`, then hand off to `__agent_deck_complete_arguments_of`,
+  which dispatches to one `__agent_deck_<cmd>` handler per command. Handlers read
+  the caller's locals (`cur`, `pos`, `npos`) via bash's dynamic scoping.
+- Each bash handler follows the same three-step shape, which is the file's main
+  readability contract:
+
+  ```bash
+  __agent_deck_<cmd>() {
+    __agent_deck_offer_subcommands '…' && return   # still on the first argument
+    __agent_deck_offer_options "$opts" && return   # user is typing a flag
+    …positional completion…
+  }
+  ```
+
+  `${#pos[@]}` (`npos`) counts positionals strictly *before* the word being
+  completed. Handlers derive `argi=$(( npos - 1 ))` (or `- 2` at the third level,
+  e.g. `mcp server`) so `argi == 1` reads as "the first argument after the
+  subcommand" instead of a bare magic number.
+- The shared zsh option-spec arrays (`__agent_deck_common_opts`,
+  `__agent_deck_create_opts`) are assigned once when the file loads. They used to
+  be built by two setter functions called on every keystroke; that was a hidden
+  side effect for no benefit, since the specs are static.
 - Option *lists* are duplicated between the two files by necessity (different
   syntaxes). When you add a flag, add it in both, and keep the descriptions in
   the zsh file in sync with the README table.

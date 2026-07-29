@@ -14,24 +14,92 @@
 # honour an explicit `-p/--profile` earlier on the command line.
 # ---------------------------------------------------------------------------
 
-# --- helpers ---------------------------------------------------------------
+_agent-deck() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  typeset -ga __agent_deck_gopts
+
+  __agent_deck_scan_gopts
+
+  _arguments -C \
+    '(- 1 *)'{-h,--help}'[show help]' \
+    '(- 1 *)'{-v,--version}'[show version]' \
+    '(-p --profile)'{-p,--profile}'[use a specific profile]:profile:__agent_deck_profiles' \
+    '(-g --group)'{-g,--group}'[launch the TUI scoped to a group]:group:__agent_deck_groups' \
+    '--select[launch the TUI with the cursor on a session]:session:__agent_deck_sessions' \
+    '1:command:__agent_deck_commands' \
+    '*:: :->args' && ret=0
+
+  [[ $state == args ]] || return ret
+
+  curcontext="${curcontext%:*:*}:agent-deck-${words[1]}:"
+
+  case ${words[1]} in
+    add)              __agent_deck_add && ret=0 ;;
+    launch)           __agent_deck_launch && ret=0 ;;
+    try)              __agent_deck_try && ret=0 ;;
+    list|ls)          _arguments -s '--json[output as JSON]' '--all[list sessions from all profiles]' && ret=0 ;;
+    remove|rm)        _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0 ;;
+    rename|mv)        _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' '2:new title:' && ret=0 ;;
+    status)           _arguments -s $__agent_deck_common_opts '(-v --verbose)'{-v,--verbose}'[show a detailed session list]' && ret=0 ;;
+    session)          __agent_deck_session && ret=0 ;;
+    fleet)            __agent_deck_fleet && ret=0 ;;
+    mcp)              __agent_deck_mcp && ret=0 ;;
+    skill)            __agent_deck_skill && ret=0 ;;
+    plugin)           __agent_deck_plugin && ret=0 ;;
+    group)            __agent_deck_group && ret=0 ;;
+    worktree|wt)      __agent_deck_worktree && ret=0 ;;
+    remote)           __agent_deck_remote && ret=0 ;;
+    conductor)        __agent_deck_conductor && ret=0 ;;
+    profile)          __agent_deck_profile && ret=0 ;;
+    web)              __agent_deck_web && ret=0 ;;
+    costs)            __agent_deck_costs && ret=0 ;;
+    watcher)          __agent_deck_watcher && ret=0 ;;
+    openclaw|oc)      __agent_deck_openclaw && ret=0 ;;
+    inbox)
+      _arguments -C '1:subcommand:((drain\:"drain and print pending events"))' '*:: :->iargs' && ret=0
+      [[ $state == iargs ]] && { _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 }
+      ;;
+    hooks|codex-hooks|gemini-hooks|hermes-hooks|cursor-hooks)
+      __agent_deck_hooks && ret=0 ;;
+    telegram-doctor)  _arguments -s '--json[emit machine-readable JSON]' '--quiet[only print drift]' && ret=0 ;;
+    update)
+      _arguments -s '--check[only check, do not install]' \
+        '--version[install a specific released version]:version:' && ret=0
+      ;;
+    migrate-paths)
+      _arguments -s '--dry-run[show what would be copied]' \
+        '--force[merge legacy files into existing XDG locations]' && ret=0
+      ;;
+    uninstall)
+      _arguments -s '--dry-run[show what would be removed]' \
+        '--keep-data[keep config/data/cache locations]' \
+        '--keep-tmux-config[keep the tmux configuration]' \
+        '-y[skip confirmation prompts]' && ret=0
+      ;;
+    help)
+      _arguments '1:command:__agent_deck_commands' && ret=0 ;;
+  esac
+
+  return ret
+}
 
 # Capture an explicit -p/--profile from the words before the subcommand, so the
 # dynamic helpers below query the profile the user is actually talking about.
 # Only the leading global-option run is scanned: `add -p` means --parent, and
 # `group reorder -p` means --position.
 __agent_deck_scan_gopts() {
-  typeset -ga _adeck_gopts
-  _adeck_gopts=()
+  typeset -ga __agent_deck_gopts
+  __agent_deck_gopts=()
   local i=2 w
   while (( i < CURRENT )); do
     w=${words[i]}
     case $w in
       -p|--profile)
-        (( i + 1 < CURRENT )) && _adeck_gopts=(--profile "${words[i+1]}")
+        (( i + 1 < CURRENT )) && __agent_deck_gopts=(--profile "${words[i+1]}")
         (( i += 2 )) ;;
       -p=*|--profile=*)
-        _adeck_gopts=(--profile "${w#*=}"); (( i++ )) ;;
+        __agent_deck_gopts=(--profile "${w#*=}"); (( i++ )) ;;
       -g|--group|--select)      (( i += 2 )) ;;
       -g=*|--group=*|--select=*) (( i++ )) ;;
       -*)                       (( i++ )) ;;
@@ -46,7 +114,7 @@ __agent_deck_scan_gopts() {
 __agent_deck_json_field() {
   local key=$1; shift
   (( $+commands[agent-deck] )) || return 1
-  agent-deck "${_adeck_gopts[@]}" "$@" 2>/dev/null |
+  agent-deck "${__agent_deck_gopts[@]}" "$@" 2>/dev/null |
     grep -o "\"${key}\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" 2>/dev/null |
     sed -e 's/^[^:]*:[[:space:]]*"//' -e 's/"$//'
 }
@@ -101,7 +169,7 @@ __agent_deck_commands() {
 __agent_deck_sessions() {
   local -a lines cands
   local line id title sstate rest
-  lines=( ${(f)"$(agent-deck "${_adeck_gopts[@]}" list --json 2>/dev/null | awk -F'"' '
+  lines=( ${(f)"$(agent-deck "${__agent_deck_gopts[@]}" list --json 2>/dev/null | awk -F'"' '
       /"id"[[:space:]]*:/     { id = $4 }
       /"title"[[:space:]]*:/  { title = $4 }
       /"status"[[:space:]]*:/ { if (id != "") { print id "\t" title "\t" $4; id = ""; title = "" } }
@@ -233,44 +301,41 @@ __agent_deck_session_fields() {
   _describe -t fields 'field' fields
 }
 
-# --- shared option groups --------------------------------------------------
+# Option specs shared by many subcommands. These are static, so they are built
+# once when this file loads rather than on every keystroke.
+typeset -ga __agent_deck_common_opts __agent_deck_create_opts
 
-__agent_deck_set_common() {
-  _adeck_json=( '--json[output as JSON]' )
-  _adeck_quiet=( '(-q --quiet)'{-q,--quiet}'[minimal output]' )
-  _adeck_common=( $_adeck_json $_adeck_quiet )
-}
+__agent_deck_common_opts=(
+  '--json[output as JSON]'
+  '(-q --quiet)'{-q,--quiet}'[minimal output]'
+)
 
-# Options shared by `add` and `launch`.
-__agent_deck_set_create_opts() {
-  _adeck_create=(
-    $_adeck_common
-    '(-c --cmd)'{-c,--cmd}'[tool/command to run]:tool:__agent_deck_tools'
-    '(-t --title)'{-t,--title}'[session title]:title:'
-    '(-g --group)'{-g,--group}'[group path]:group:__agent_deck_groups'
-    '(-p --parent)'{-p,--parent}'[parent session (creates a sub-session)]:session:__agent_deck_sessions'
-    '--model[model id/version for this session]:model:'
-    '(-w --worktree)'{-w,--worktree}'[create the session in a git worktree for this branch]:branch:__agent_deck_branches'
-    '(-b --new-branch)'{-b,--new-branch}'[create a new branch (with --worktree)]'
-    '--location[worktree location]:location:__agent_deck_worktree_location'
-    '*--mcp[MCP to attach (repeatable)]:mcp:__agent_deck_mcps'
-    '*--plugin[catalog plugin to enable (repeatable, claude only)]:plugin:__agent_deck_plugins'
-    '*--channel[plugin channel id (repeatable, claude only)]:channel:'
-    '*--extra-arg[extra claude CLI token (repeatable, claude only)]:token:'
-    '--no-channel-link[do not auto-link --plugin channels to --channel]'
-    '--no-parent[disable automatic parent linking]'
-    '--no-title-sync[alias for --title-lock]'
-    '--title-lock[keep Claude from overriding the session title]'
-    '--no-transition-notify[suppress transition notifications to the parent]'
-    '--resume-session[Claude session id to resume]:session id:'
-    '--tmux-socket[tmux -L socket name for this session]:socket:'
-  )
-}
-
-# --- top-level commands ----------------------------------------------------
+# Shared by `add` and `launch`.
+__agent_deck_create_opts=(
+  $__agent_deck_common_opts
+  '(-c --cmd)'{-c,--cmd}'[tool/command to run]:tool:__agent_deck_tools'
+  '(-t --title)'{-t,--title}'[session title]:title:'
+  '(-g --group)'{-g,--group}'[group path]:group:__agent_deck_groups'
+  '(-p --parent)'{-p,--parent}'[parent session (creates a sub-session)]:session:__agent_deck_sessions'
+  '--model[model id/version for this session]:model:'
+  '(-w --worktree)'{-w,--worktree}'[create the session in a git worktree for this branch]:branch:__agent_deck_branches'
+  '(-b --new-branch)'{-b,--new-branch}'[create a new branch (with --worktree)]'
+  '--location[worktree location]:location:__agent_deck_worktree_location'
+  '*--mcp[MCP to attach (repeatable)]:mcp:__agent_deck_mcps'
+  '*--plugin[catalog plugin to enable (repeatable, claude only)]:plugin:__agent_deck_plugins'
+  '*--channel[plugin channel id (repeatable, claude only)]:channel:'
+  '*--extra-arg[extra claude CLI token (repeatable, claude only)]:token:'
+  '--no-channel-link[do not auto-link --plugin channels to --channel]'
+  '--no-parent[disable automatic parent linking]'
+  '--no-title-sync[alias for --title-lock]'
+  '--title-lock[keep Claude from overriding the session title]'
+  '--no-transition-notify[suppress transition notifications to the parent]'
+  '--resume-session[Claude session id to resume]:session id:'
+  '--tmux-socket[tmux -L socket name for this session]:socket:'
+)
 
 __agent_deck_add() {
-  _arguments -s $_adeck_create \
+  _arguments -s $__agent_deck_create_opts \
     '(-Q --quick)'{-Q,--quick}'[create a quick session with a generated handle]' \
     '--attach[start and attach to the session immediately]' \
     '--account[named account slot]:account:' \
@@ -285,7 +350,7 @@ __agent_deck_add() {
 }
 
 __agent_deck_launch() {
-  _arguments -s $_adeck_create \
+  _arguments -s $__agent_deck_create_opts \
     '(-m --message)'{-m,--message}'[initial message to send once the agent is ready]:message:' \
     '--message-file[read the initial message from a file (- for stdin)]:file:_files' \
     '--assert-done[append a completion-sentinel instruction to the message]' \
@@ -299,7 +364,7 @@ __agent_deck_launch() {
 }
 
 __agent_deck_try() {
-  _arguments -s $_adeck_common \
+  _arguments -s $__agent_deck_common_opts \
     '(-c --cmd)'{-c,--cmd}'[AI tool to use]:tool:__agent_deck_tools' \
     '(-l --list)'{-l,--list}'[list experiments without creating a session]' \
     '--no-session[create the folder only, do not start a session]' \
@@ -355,7 +420,7 @@ __agent_deck_session() {
     args)
       case ${words[1]} in
         start)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '(-m --message)'{-m,--message}'[initial message to send once ready]:message:' \
             '--message-file[read the initial message from a file]:file:_files' \
             '--attach[attach to the session after starting]' \
@@ -363,10 +428,10 @@ __agent_deck_session() {
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         stop|archive|unarchive|unset-parent|show)
-          _arguments -s $_adeck_common '1:session:__agent_deck_sessions' && ret=0
+          _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
           ;;
         current)
-          _arguments -s $_adeck_common && ret=0
+          _arguments -s $__agent_deck_common_opts && ret=0
           ;;
         attach)
           _arguments '1:session:__agent_deck_sessions' && ret=0
@@ -376,14 +441,14 @@ __agent_deck_session() {
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         remove)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--force[remove even when the session is not stopped]' \
             '--all-errored[remove every errored session]' \
             '--prune-worktree[also remove the session'\''s git worktree]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         cleanup|prune)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--days[purge sessions idle at least this many days]:days:' \
             '--dry-run[show what would be purged]' \
             '(-y --yes)'{-y,--yes}'[actually purge instead of dry-running]' \
@@ -392,19 +457,19 @@ __agent_deck_session() {
             '--prune-worktree[also remove git worktrees]' && ret=0
           ;;
         restart)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--all[restart every active session]' \
             '*--env[set an env var for the restarted session]:KEY=VALUE:' \
             '--force[restart even when the session looks busy]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         revive)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--all[revive every errored session]' \
             '--name[revive by session name]:name:__agent_deck_sessions' && ret=0
           ;;
         fork)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '(-t --title)'{-t,--title}'[title for the fork]:title:' \
             '(-g --group)'{-g,--group}'[group for the fork]:group:__agent_deck_groups' \
             '(-w --worktree)'{-w,--worktree}'[create the fork in a git worktree]:branch:__agent_deck_branches' \
@@ -422,19 +487,19 @@ __agent_deck_session() {
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         set)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '1:session:__agent_deck_sessions' \
             '2:field:__agent_deck_session_fields' \
             '*:value:' && ret=0
           ;;
         switch-account)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--no-restart[do not restart the session afterwards]' \
             '1:session:__agent_deck_sessions' \
             '2:account:' && ret=0
           ;;
         move|mv)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--group[target group]:group:__agent_deck_groups' \
             '--to-profile[move the session to another profile]:profile:__agent_deck_profiles' \
             '--copy[copy instead of moving]' \
@@ -475,13 +540,13 @@ __agent_deck_session() {
             '2:choice:(once always session)' && ret=0
           ;;
         output)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--copy[copy the response to the clipboard]' \
             '--pane[read the raw tmux pane instead of the transcript]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         children)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--follow[keep watching for updates]' \
             '--until-done[exit once every child has completed]' \
             '--interval[poll interval]:duration:' \
@@ -489,26 +554,26 @@ __agent_deck_session() {
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         search)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--days[only search the last N days]:days:' \
             '--limit[cap the number of hits]:count:' \
             '--tier[index tier]:tier:(instant balanced auto)' \
             '1:query:' && ret=0
           ;;
         set-parent)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--inherit-group[also move the child into the parent'\''s group]' \
             '1:session:__agent_deck_sessions' \
             '2:parent session:__agent_deck_sessions' && ret=0
           ;;
         update)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--parent[link the session to this parent]:session:__agent_deck_sessions' \
             '--no-parent[remove the sub-session link]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         set-transition-notify|set-title-lock)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '1:session:__agent_deck_sessions' \
             '2:state:(on off)' && ret=0
           ;;
@@ -538,12 +603,12 @@ __agent_deck_mcp() {
     subcmd) _describe -t mcp-commands 'mcp command' subcmds && ret=0 ;;
     args)
       case ${words[1]} in
-        list|ls) _arguments -s $_adeck_common && ret=0 ;;
+        list|ls) _arguments -s $__agent_deck_common_opts && ret=0 ;;
         attached)
-          _arguments -s $_adeck_common '1:session:__agent_deck_sessions' && ret=0
+          _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
           ;;
         attach|detach)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--global[apply to the global config instead of the session]' \
             '--restart[restart the session afterwards]' \
             '1:session:__agent_deck_sessions' \
@@ -552,7 +617,7 @@ __agent_deck_mcp() {
         server)
           _arguments -C '1:subcommand:(start stop status help)' '*:: :->sargs' && ret=0
           if [[ $state == sargs ]]; then
-            _arguments -s $_adeck_common '1:mcp:__agent_deck_mcps' && ret=0
+            _arguments -s $__agent_deck_common_opts '1:mcp:__agent_deck_mcps' && ret=0
           fi
           ;;
       esac
@@ -582,14 +647,14 @@ __agent_deck_skill() {
     args)
       case ${words[1]} in
         list|ls)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--source[only list skills from this source]:source:__agent_deck_skill_sources' && ret=0
           ;;
         attached)
-          _arguments -s $_adeck_common '1:session:__agent_deck_sessions' && ret=0
+          _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
           ;;
         attach|detach)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--source[skill source to resolve the name in]:source:__agent_deck_skill_sources' \
             '--restart[restart the session afterwards]' \
             '1:session:__agent_deck_sessions' \
@@ -601,14 +666,14 @@ __agent_deck_skill() {
           if [[ $state == sargs ]]; then
             case ${words[1]} in
               add)
-                _arguments -s $_adeck_common \
+                _arguments -s $__agent_deck_common_opts \
                   '--description[human-readable description]:description:' \
                   '1:name:' '2:path:_files -/' && ret=0
                 ;;
               remove|rm)
-                _arguments -s $_adeck_common '1:source:__agent_deck_skill_sources' && ret=0
+                _arguments -s $__agent_deck_common_opts '1:source:__agent_deck_skill_sources' && ret=0
                 ;;
-              *) _arguments -s $_adeck_common && ret=0 ;;
+              *) _arguments -s $__agent_deck_common_opts && ret=0 ;;
             esac
           fi
           ;;
@@ -637,10 +702,10 @@ __agent_deck_plugin() {
     subcmd) _describe -t plugin-commands 'plugin command' subcmds && ret=0 ;;
     args)
       case ${words[1]} in
-        list|ls) _arguments -s $_adeck_common && ret=0 ;;
-        attached) _arguments -s $_adeck_common '1:session:__agent_deck_sessions' && ret=0 ;;
+        list|ls) _arguments -s $__agent_deck_common_opts && ret=0 ;;
+        attached) _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0 ;;
         attach|detach)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--restart[restart the session afterwards]' \
             '--no-channel-link[do not auto-link the plugin'\''s channel]' \
             '1:session:__agent_deck_sessions' \
@@ -683,45 +748,45 @@ __agent_deck_group() {
     subcmd) _describe -t group-commands 'group command' subcmds && ret=0 ;;
     args)
       case ${words[1]} in
-        list|ls) _arguments -s $_adeck_common && ret=0 ;;
+        list|ls) _arguments -s $__agent_deck_common_opts && ret=0 ;;
         show|info)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--resolved[include the effective claude config]' \
             '1:group:__agent_deck_groups' && ret=0
           ;;
         create|new)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--parent[parent group]:group:__agent_deck_groups' \
             '--default-path[default project path for the group]:path:_files -/' \
             '--max-concurrent[cap concurrently running sessions]:count:' \
             '1:name:' && ret=0
           ;;
         update|set)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--default-path[default project path for the group]:path:_files -/' \
             '--clear-default-path[clear the default project path]' \
             '--max-concurrent[cap concurrently running sessions]:count:' \
             '1:group:__agent_deck_groups' && ret=0
           ;;
         delete|rm|remove)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--force[delete even when the group still holds sessions]' \
             '1:group:__agent_deck_groups' && ret=0
           ;;
         move|mv)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--force[move even when the session is running]' \
             '--to-profile[move to a group in another profile]:profile:__agent_deck_profiles' \
             '1:session:__agent_deck_sessions' \
             '2:group:__agent_deck_groups' && ret=0
           ;;
         change|reparent)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '1:group:__agent_deck_groups' \
             '2:destination group:__agent_deck_groups' && ret=0
           ;;
         reorder|sort)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '(-u --up)'{-u,--up}'[move the group up]' \
             '(-d --down)'{-d,--down}'[move the group down]' \
             '(-p --position)'{-p,--position}'[move the group to this index]:position:' \
@@ -875,7 +940,7 @@ __agent_deck_conductor() {
           _arguments -s '--json[output as JSON]' '--profile[limit to a profile]:profile:__agent_deck_profiles' && ret=0
           ;;
         move)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--to-profile[destination profile]:profile:__agent_deck_profiles' \
             '--force[move even when running]' \
             '1:conductor:__agent_deck_conductors' && ret=0
@@ -904,9 +969,9 @@ __agent_deck_fleet() {
   case $state in
     args)
       case ${words[1]} in
-        status) _arguments -s $_adeck_common && ret=0 ;;
+        status) _arguments -s $__agent_deck_common_opts && ret=0 ;;
         recover)
-          _arguments -s $_adeck_common \
+          _arguments -s $__agent_deck_common_opts \
             '--yes[actually recover instead of planning]' \
             '--dry-run[plan only]' \
             '--group[limit recovery to a group]:group:__agent_deck_groups' \
@@ -929,16 +994,16 @@ __agent_deck_profile() {
   local curcontext=$curcontext state line ret=1
   typeset -A opt_args
 
-  _arguments -C $_adeck_common \
+  _arguments -C $__agent_deck_common_opts \
     '1:subcommand:((list\:"list all profiles" create\:"create a new profile" delete\:"delete a profile" default\:"show or set the default profile" help\:"show profile help"))' \
     '*:: :->args' && ret=0
 
   case $state in
     args)
       case ${words[1]} in
-        delete|default) _arguments -s $_adeck_common '1:profile:__agent_deck_profiles' && ret=0 ;;
-        create) _arguments -s $_adeck_common '1:name:' && ret=0 ;;
-        *) _arguments -s $_adeck_common && ret=0 ;;
+        delete|default) _arguments -s $__agent_deck_common_opts '1:profile:__agent_deck_profiles' && ret=0 ;;
+        create) _arguments -s $__agent_deck_common_opts '1:name:' && ret=0 ;;
+        *) _arguments -s $__agent_deck_common_opts && ret=0 ;;
       esac
       ;;
   esac
@@ -1041,80 +1106,6 @@ __agent_deck_openclaw() {
 
 __agent_deck_hooks() {
   _arguments '1:subcommand:((install\:"install or upgrade the hook" uninstall\:"remove the hook" status\:"show the hook install status"))'
-}
-
-# --- entry point -----------------------------------------------------------
-
-_agent-deck() {
-  local curcontext=$curcontext state line ret=1
-  typeset -A opt_args
-  typeset -ga _adeck_gopts _adeck_common _adeck_json _adeck_quiet _adeck_create
-
-  __agent_deck_scan_gopts
-
-  _arguments -C \
-    '(- 1 *)'{-h,--help}'[show help]' \
-    '(- 1 *)'{-v,--version}'[show version]' \
-    '(-p --profile)'{-p,--profile}'[use a specific profile]:profile:__agent_deck_profiles' \
-    '(-g --group)'{-g,--group}'[launch the TUI scoped to a group]:group:__agent_deck_groups' \
-    '--select[launch the TUI with the cursor on a session]:session:__agent_deck_sessions' \
-    '1:command:__agent_deck_commands' \
-    '*:: :->args' && ret=0
-
-  [[ $state == args ]] || return ret
-
-  __agent_deck_set_common
-  __agent_deck_set_create_opts
-  curcontext="${curcontext%:*:*}:agent-deck-${words[1]}:"
-
-  case ${words[1]} in
-    add)              __agent_deck_add && ret=0 ;;
-    launch)           __agent_deck_launch && ret=0 ;;
-    try)              __agent_deck_try && ret=0 ;;
-    list|ls)          _arguments -s '--json[output as JSON]' '--all[list sessions from all profiles]' && ret=0 ;;
-    remove|rm)        _arguments -s $_adeck_common '1:session:__agent_deck_sessions' && ret=0 ;;
-    rename|mv)        _arguments -s $_adeck_common '1:session:__agent_deck_sessions' '2:new title:' && ret=0 ;;
-    status)           _arguments -s $_adeck_common '(-v --verbose)'{-v,--verbose}'[show a detailed session list]' && ret=0 ;;
-    session)          __agent_deck_session && ret=0 ;;
-    fleet)            __agent_deck_fleet && ret=0 ;;
-    mcp)              __agent_deck_mcp && ret=0 ;;
-    skill)            __agent_deck_skill && ret=0 ;;
-    plugin)           __agent_deck_plugin && ret=0 ;;
-    group)            __agent_deck_group && ret=0 ;;
-    worktree|wt)      __agent_deck_worktree && ret=0 ;;
-    remote)           __agent_deck_remote && ret=0 ;;
-    conductor)        __agent_deck_conductor && ret=0 ;;
-    profile)          __agent_deck_profile && ret=0 ;;
-    web)              __agent_deck_web && ret=0 ;;
-    costs)            __agent_deck_costs && ret=0 ;;
-    watcher)          __agent_deck_watcher && ret=0 ;;
-    openclaw|oc)      __agent_deck_openclaw && ret=0 ;;
-    inbox)
-      _arguments -C '1:subcommand:((drain\:"drain and print pending events"))' '*:: :->iargs' && ret=0
-      [[ $state == iargs ]] && { _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 }
-      ;;
-    hooks|codex-hooks|gemini-hooks|hermes-hooks|cursor-hooks)
-      __agent_deck_hooks && ret=0 ;;
-    telegram-doctor)  _arguments -s '--json[emit machine-readable JSON]' '--quiet[only print drift]' && ret=0 ;;
-    update)
-      _arguments -s '--check[only check, do not install]' \
-        '--version[install a specific released version]:version:' && ret=0
-      ;;
-    migrate-paths)
-      _arguments -s '--dry-run[show what would be copied]' \
-        '--force[merge legacy files into existing XDG locations]' && ret=0
-      ;;
-    uninstall)
-      _arguments -s '--dry-run[show what would be removed]' \
-        '--keep-data[keep config/data/cache locations]' \
-        '--keep-tmux-config[keep the tmux configuration]' \
-        '-y[skip confirmation prompts]' && ret=0
-      ;;
-    help)
-      _arguments '1:command:__agent_deck_commands' && ret=0 ;;
-  esac
-
-  return ret
 }
 
 _agent-deck "$@"
