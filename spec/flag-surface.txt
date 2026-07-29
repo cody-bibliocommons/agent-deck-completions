@@ -1,5 +1,5 @@
 [commands] --help --version -h -v add codex-hooks codex-notify conductor costs creds-refresh cursor-hooks debug-dump feedback fleet gemini-hooks group help hermes-hooks hook-handler hooks inbox launch list ls mcp mcp-proxy migrate-paths mv notify-daemon oc openclaw plugin profile remote remove rename rm run-task session skill status telegram-doctor try uninstall update version watcher web worktree wt
-[tools] claude codex copilot crush cursor gemini hermes kiro-cli opencode pi
+[tools] claude codex copilot crush cursor gemini hermes opencode pi
 [add] Q:bool account:string attach:bool b:bool c:string cmd:string g:string gemini-yolo:bool group:string json:bool location:string model:string new-branch:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool p:string parent:string q:bool quick:bool quiet:bool remote-path:string resume-session:string sandbox:bool sandbox-image:string ssh:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string yolo:bool
 [conductor list] json:bool profile:string
 [conductor migrate-dir] apply:bool force:bool from:string json:bool

@@ -250,6 +250,10 @@ __agent_deck_experiments() {
   _describe -t experiments 'experiment' exps
 }
 
+# Upstream's builtinToolValues, plus two deliberate extras: `shell` (a valid
+# --cmd, not a builtin tool) and `kiro-cli` (upstream's feat/kiro-cli-tool
+# branch, not yet on main). --cmd takes an arbitrary command, so neither can be
+# wrong; tools/check-coverage.py holds this list to the snapshot.
 __agent_deck_tools() {
   local -a tools
   tools=(

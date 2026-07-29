@@ -615,6 +615,10 @@ __agent_deck_session_subcmds='start stop remove cleanup prune archive unarchive
 __agent_deck_session_fields='title path command tool wrapper channels plugins
   extra-args model color claude-session-id gemini-session-id account idle-timeout'
 
+# Upstream's builtinToolValues, plus two deliberate extras: `shell` (a valid
+# --cmd, not a builtin tool) and `kiro-cli` (upstream's feat/kiro-cli-tool
+# branch, not yet on main). --cmd takes an arbitrary command, so neither can be
+# wrong; tools/check-coverage.py holds this list to the snapshot.
 __agent_deck_tools='claude codex gemini opencode copilot crush cursor hermes kiro-cli pi shell'
 
 __agent_deck_approval_choices='once always session'

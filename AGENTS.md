@@ -61,8 +61,20 @@ that actually happens is "added to one shell, forgot the other". Both checks wer
 verified red-green — removing `--insecure-bind` from the bash file makes coverage
 fail, and the suites' guard case fails when the `return 0` is dropped.
 
-Verified against agent-deck **v1.10.11**; the flag surface was identical between
-the v1.10.11 tag and a later `main` (only the tool list had changed).
+Verified against agent-deck **v1.10.11**. `spec/flag-surface.txt` is generated
+from upstream `main` (`580e772` at the time of writing); the flag surface is
+identical between that and the v1.10.11 tag.
+
+**`kiro-cli` is ahead of upstream.** It was added from a local checkout that
+turned out to be sitting on the unmerged branch `feat/kiro-cli-tool`, not on
+`main` — upstream `main` has no mention of it, and the released v1.10.11 binary
+does not know it. It is kept anyway because `--cmd` takes an arbitrary command
+string, so offering it can never be invalid, and dropped it would be missed once
+the branch lands. The divergence is codified in `EXTRA_TOOLS` in
+`tools/check-coverage.py` (alongside `shell`, which is a legal `--cmd` but never
+was a `builtinToolValues` entry), so it shows up as a deliberate exception rather
+than as a mistake. If the branch merges, the drift workflow will flag the `[tools]`
+line and the exception can be deleted.
 
 ## Dynamic completion contract
 
