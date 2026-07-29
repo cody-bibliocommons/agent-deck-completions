@@ -11,12 +11,12 @@ set -uo pipefail
 for bc in /usr/share/bash-completion/bash_completion /etc/bash_completion; do
   # Loading bash-completion also loads /etc/bash_completion.d/*, some of which
   # chatter on stdout; keep the harness output clean.
-  [[ -r $bc ]] && { # shellcheck disable=SC1090
-    source "$bc" >/dev/null 2>&1; break; }
+  # shellcheck disable=SC1090,SC1091  # path is chosen at runtime
+  [[ -r $bc ]] && { source "$bc" >/dev/null 2>&1; break; }
 done
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-# shellcheck source=../bash/agent-deck.bash
+# shellcheck source=../bash/agent-deck.bash disable=SC1091
 source "$here/../bash/agent-deck.bash"
 
 line=${1:?usage: comptest.bash '<partial command line>'}

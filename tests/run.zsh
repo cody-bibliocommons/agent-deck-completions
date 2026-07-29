@@ -15,7 +15,20 @@ local REPO=${0:A:h:h}
 local FILTER=${1-}
 local TEST_PROFILE=_completion_suite
 local TEST_SESSION='Comp Test'
-integer PASSED=0 FAILED=0
+integer PASSED=0 FAILED=0 SKIPPED=0
+
+have_agent_deck() { (( $+commands[agent-deck] )) }
+
+# expect_live — same as expect, but skipped when agent-deck is not installed,
+# because the candidates come from the running CLI. CI has no agent-deck, and a
+# skip there is honest where a pass would not be.
+expect_live() {
+  if ! have_agent_deck; then
+    [[ -n $FILTER && $1 != *$FILTER* ]] && return 0
+    (( SKIPPED++ )); print -r -- "skip $1 (needs agent-deck)"; return 0
+  fi
+  expect "$@"
+}
 
 setup_fixture() {
   (( $+commands[agent-deck] )) || return 0
@@ -94,11 +107,15 @@ expect 'agent-deck session search --tier '        'balanced'
 expect 'agent-deck session approve x '            'always'
 expect 'agent-deck fleet recover --'              '--auth-halt-after'
 expect 'agent-deck web --'                        '--insecure-bind'
-expect 'agent-deck skill list --source '          'claude-global'
-expect "agent-deck -p $TEST_PROFILE session start " 'Comp Test'
-expect "agent-deck -p $TEST_PROFILE -g "           'tmp'
+expect_live 'agent-deck skill list --source '     'claude-global'
+expect_live "agent-deck -p $TEST_PROFILE session start " 'Comp Test'
+expect_live "agent-deck -p $TEST_PROFILE -g "      'tmp'
 expect "agent-deck -p $TEST_PROFILE session set Comp\\ Test " 'idle-timeout'
 
 print -r -- ""
-print -r -- "$PASSED passed, $FAILED failed"
+if (( SKIPPED )); then
+  print -r -- "$PASSED passed, $FAILED failed, $SKIPPED skipped (no agent-deck on PATH)"
+else
+  print -r -- "$PASSED passed, $FAILED failed"
+fi
 (( FAILED == 0 ))

@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: parse + shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends zsh
+
+      - name: Parse-check every script
+        # One file per invocation on purpose: `bash -n a b` checks only `a` and
+        # silently ignores the rest, and `zsh -n` behaves the same way.
+        run: |
+          for script in bash/agent-deck.bash install.sh tests/run.bash tests/comptest.bash; do
+            echo "bash -n $script"
+            bash -n "$script"
+          done
+          for script in zsh/_agent-deck tests/run.zsh tests/comptest.zsh; do
+            echo "zsh -n $script"
+            zsh -n "$script"
+          done
+
+      - name: shellcheck
+        run: |
+          shellcheck -s bash bash/agent-deck.bash
+          shellcheck install.sh tests/run.bash tests/comptest.bash
+
+  coverage:
+    name: flag coverage in both shells
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every snapshot flag is offered by bash and zsh
+        run: python3 tools/check-coverage.py
+
+  test:
+    name: completion suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh and bash-completion
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends zsh bash-completion
+
+      # agent-deck itself is not installed here, so the cases whose candidates
+      # come from the running CLI report as skipped rather than passing on empty
+      # output. Everything static — commands, subcommands, options, enums — runs.
+      - name: bash suite
+        run: bash tests/run.bash
+
+      - name: zsh suite
+        run: zsh tests/run.zsh
+
+  install:
+    name: install.sh round-trip
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install zsh
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends zsh
+
+      - name: Install, verify the symlinks, then uninstall
+        run: |
+          ./install.sh
+          test -L "$HOME/.local/share/bash-completion/completions/agent-deck"
+          test -L "$HOME/.local/share/zsh/site-functions/_agent-deck"
+          test "$(readlink -f "$HOME/.local/share/bash-completion/completions/agent-deck")" \
+             = "$PWD/bash/agent-deck.bash"
+          test "$(readlink -f "$HOME/.local/share/zsh/site-functions/_agent-deck")" \
+             = "$PWD/zsh/_agent-deck"
+          ./install.sh --uninstall
+          test ! -e "$HOME/.local/share/bash-completion/completions/agent-deck"
+          test ! -e "$HOME/.local/share/zsh/site-functions/_agent-deck"
+
+      - name: zsh loads the completion from a clean fpath
+        run: |
+          ./install.sh --zsh
+          zsh -fc '
+            fpath=("$HOME/.local/share/zsh/site-functions" $fpath)
+            autoload -Uz compinit && compinit -u -D
+            [[ ${_comps[agent-deck]} == _agent-deck ]] || { print -u2 "not registered"; exit 1 }
+            print "registered as ${_comps[agent-deck]}"
+          '

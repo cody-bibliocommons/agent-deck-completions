@@ -1,5 +1,8 @@
 # agent-deck shell completions
 
+[![CI](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/ci.yml/badge.svg)](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/ci.yml)
+[![upstream drift](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/upstream-drift.yml/badge.svg)](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/upstream-drift.yml)
+
 Tab completion for [`agent-deck`](https://github.com/asheshgoplani/agent-deck) — the
 terminal session manager for AI coding agents — for **zsh** and **bash**.
 
@@ -16,6 +19,8 @@ tests/run.bash          assertion suite for the bash completion
 tests/run.zsh           assertion suite for the zsh completion
 tests/comptest.bash     print the candidates for one command line (bash)
 tests/comptest.zsh      print the candidates for one command line (zsh)
+tools/                  CLI-surface extractor and the both-shells coverage check
+spec/flag-surface.txt   snapshot of agent-deck's CLI surface, diffed weekly by CI
 ```
 
 ## Install
@@ -176,6 +181,27 @@ To eyeball one command line instead of asserting on it:
 ```bash
 tests/comptest.zsh  'agent-deck session '
 tests/comptest.bash 'agent-deck mcp attach '
+```
+
+## Maintenance
+
+Two workflows keep this honest:
+
+- **CI** (`ci.yml`) — parse-checks and shellchecks every script, asserts every
+  flag in the snapshot is offered by *both* completions
+  (`tools/check-coverage.py`), runs both suites, and round-trips `install.sh`
+  including a check that zsh actually registers `_agent-deck` from a clean
+  `$fpath`.
+- **upstream drift** (`upstream-drift.yml`) — weekly, regenerates
+  `spec/flag-surface.txt` from upstream `agent-deck` and fails (and files an
+  issue with the diff) when its CLI surface has moved. These completions describe
+  someone else's CLI, so that is the way they rot.
+
+Refresh the snapshot after intentionally adopting an upstream change:
+
+```bash
+python3 tools/extract-flag-surface.py /path/to/agent-deck > spec/flag-surface.txt
+python3 tools/check-coverage.py
 ```
 
 ## Known limitations

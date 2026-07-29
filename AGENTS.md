@@ -25,28 +25,16 @@ They were extracted from the upstream Go source, because `--help` text in this
 CLI is hand-written per command and drifts from the actual `flag.FlagSet`
 registrations (several real flags never appear in help, and help truncates).
 
-The extraction: for each non-test file in `cmd/agent-deck/`, find every
-`flag.NewFlagSet("<name>", …)` and attribute all following
-`fs.String/Bool/Int/Duration/Var(...)` calls to that flag-set name. The flag-set
-names are conveniently the command paths themselves (`"session start"`,
+The extraction lives in `tools/extract-flag-surface.py` — one implementation,
+used by both humans and CI, so there is no snippet here to drift from it. It
+finds every `flag.NewFlagSet("<name>", …)` and attributes the following
+`fs.String/Bool/Int/Duration/Var(...)` calls to that flag-set name. Those names
+are conveniently the command paths themselves (`"session start"`,
 `"group reorder"`, `"mcp server status"`), which yields an exact
 command-path → options map:
 
-```python
-# run inside a checkout of agent-deck, in cmd/agent-deck/
-import re, glob
-pat  = re.compile(r'flag\.NewFlagSet\(\s*"([^"]*)"')
-flag = re.compile(r'\b\w+\.(String|Bool|Int|Int64|Float64|Duration|Var)(?:Var)?\(\s*(?:&\w+\s*,\s*)?"([\w\-\.]+)"')
-out, cur = {}, None
-for f in sorted(x for x in glob.glob('*.go') if not x.endswith('_test.go')):
-    for ln in open(f):
-        m = pat.search(ln)
-        if m: cur = m.group(1); out.setdefault(cur, set()); continue
-        if cur:
-            for kind, name in flag.findall(ln):
-                out[cur].add((name, 'bool' if kind == 'Bool' else kind.lower()))
-for k in sorted(out):
-    print(f"[{k}] " + " ".join(f"{n}:{t}" for n, t in sorted(out[k])))
+```bash
+python3 tools/extract-flag-surface.py /path/to/agent-deck
 ```
 
 Top-level commands come from the `switch` on `args[0]` in
@@ -57,9 +45,21 @@ Top-level commands come from the `switch` on `args[0]` in
 `openclaw_cmd.go`, `hook_handler.go`. The tool list (`claude`, `codex`, …,
 `kiro-cli`) comes from `builtinToolValues` in `internal/ui/settings_panel.go`.
 
-**To update after an upstream release:** re-run the snippet above against the new
-checkout, diff it against the previous output, and apply only the deltas. That is
-how `kiro-cli` was added. Do not rewrite the completions from `--help`.
+**To update after an upstream release:** the `upstream drift` workflow does the
+diffing for you weekly — it regenerates the surface from upstream, fails, and
+files an issue containing the delta. To adopt a change: apply the deltas to
+**both** completions, refresh the snapshot
+(`python3 tools/extract-flag-surface.py <checkout> > spec/flag-surface.txt`), then
+run `python3 tools/check-coverage.py` and both suites. That is how `kiro-cli` was
+added. Do not rewrite the completions from `--help`.
+
+`spec/flag-surface.txt` is the committed snapshot of that extractor's output and
+is the ground truth `tools/check-coverage.py` checks both completions against.
+The coverage check is a coarse whole-file search on purpose: mapping each flag to
+its exact completion context would re-implement both dispatchers, and the failure
+that actually happens is "added to one shell, forgot the other". Both checks were
+verified red-green — removing `--insecure-bind` from the bash file makes coverage
+fail, and the suites' guard case fails when the `return 0` is dropped.
 
 Verified against agent-deck **v1.10.11**; the flag surface was identical between
 the v1.10.11 tag and a later `main` (only the tool list had changed).

@@ -34,8 +34,10 @@ if (( ! picked_shell )); then
 fi
 
 if (( uninstall )); then
-  rm -fv "$BASH_DIR/agent-deck" "$ZSH_DIR/_agent-deck" 2>/dev/null || true
-  [[ -w ${SYSTEM_ZSH_DIR%/*} ]] && rm -fv "$SYSTEM_ZSH_DIR/_agent-deck" 2>/dev/null || true
+  rm -fv "$BASH_DIR/agent-deck" "$ZSH_DIR/_agent-deck"
+  if [[ -w ${SYSTEM_ZSH_DIR%/*} ]]; then
+    rm -fv "$SYSTEM_ZSH_DIR/_agent-deck"
+  fi
   echo "Removed. Start a new shell (zsh: rm -f ~/.zcompdump*) to drop the stale cache."
   exit 0
 fi

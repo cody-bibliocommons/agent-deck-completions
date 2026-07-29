@@ -1,0 +1,105 @@
+name: upstream drift
+
+# These completions describe someone else's CLI, so the way they rot is upstream
+# adding or renaming a flag. This regenerates the CLI surface from upstream and
+# diffs it against spec/flag-surface.txt, turning silent staleness into a
+# failure (and an issue) instead of a completion that quietly lies.
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'   # Mondays, 05:17 UTC
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/extract-flag-surface.py'
+      - 'spec/flag-surface.txt'
+      - '.github/workflows/upstream-drift.yml'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the completions
+        uses: actions/checkout@v4
+
+      - name: Check out agent-deck
+        uses: actions/checkout@v4
+        with:
+          repository: asheshgoplani/agent-deck
+          path: upstream
+          fetch-depth: 1
+
+      - name: Record which upstream commit was inspected
+        id: upstream
+        working-directory: upstream
+        run: |
+          {
+            echo "sha=$(git rev-parse HEAD)"
+            echo "short=$(git rev-parse --short HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate the CLI surface
+        run: python3 tools/extract-flag-surface.py upstream > /tmp/current-surface.txt
+
+      - name: Diff against the committed snapshot
+        id: diff
+        run: |
+          if diff -u spec/flag-surface.txt /tmp/current-surface.txt > /tmp/surface.diff; then
+            echo "drifted=false" >> "$GITHUB_OUTPUT"
+            echo "No drift: upstream matches spec/flag-surface.txt."
+          else
+            echo "drifted=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::agent-deck's CLI surface changed; see the diff below and the artifact."
+            cat /tmp/surface.diff
+          fi
+
+      - name: Upload the regenerated surface
+        if: steps.diff.outputs.drifted == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flag-surface-${{ steps.upstream.outputs.short }}
+          path: |
+            /tmp/current-surface.txt
+            /tmp/surface.diff
+
+      - name: Open or update a drift issue
+        if: steps.diff.outputs.drifted == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: agent-deck CLI surface drifted from spec/flag-surface.txt
+          UPSTREAM_SHA: ${{ steps.upstream.outputs.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "\`tools/extract-flag-surface.py\` against upstream \`${UPSTREAM_SHA}\`"
+            echo "no longer matches \`spec/flag-surface.txt\`."
+            echo
+            echo "To resolve: apply the deltas to **both** completions, refresh the snapshot"
+            echo "with \`python3 tools/extract-flag-surface.py <checkout> > spec/flag-surface.txt\`,"
+            echo "then run \`python3 tools/check-coverage.py\` and both suites. See AGENTS.md."
+            echo
+            echo "[Workflow run]($RUN_URL)"
+            echo
+            echo '```diff'
+            cat /tmp/surface.diff
+            echo '```'
+          } > /tmp/issue-body.md
+
+          existing=$(gh issue list --state open --search "$TITLE in:title" \
+                       --json number --jq '.[0].number // empty')
+          if [[ -n $existing ]]; then
+            gh issue comment "$existing" --body-file /tmp/issue-body.md
+            echo "Commented on existing issue #$existing"
+          else
+            gh issue create --title "$TITLE" --body-file /tmp/issue-body.md \
+              --label upstream-drift 2>/dev/null ||
+              gh issue create --title "$TITLE" --body-file /tmp/issue-body.md
+          fi
+
+      - name: Fail if drifted
+        if: steps.diff.outputs.drifted == 'true'
+        run: exit 1

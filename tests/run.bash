@@ -13,11 +13,12 @@ set -uo pipefail
 for bash_completion in /usr/share/bash-completion/bash_completion /etc/bash_completion; do
   # Loading bash-completion also loads /etc/bash_completion.d/*, some of which
   # chatter on stdout; keep the suite output clean.
+  # shellcheck disable=SC1090,SC1091  # path is chosen at runtime
   [[ -r $bash_completion ]] && { source "$bash_completion" >/dev/null 2>&1; break; }
 done
 
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-# shellcheck source=../bash/agent-deck.bash
+# shellcheck source=../bash/agent-deck.bash disable=SC1091
 source "$here/../bash/agent-deck.bash"
 
 readonly TEST_PROFILE=_completion_suite
@@ -63,8 +64,10 @@ candidates_for() {
   printf '%s ' "${COMPREPLY[@]}"
 }
 
-passed=0 failed=0
+passed=0 failed=0 skipped=0
 filter=${1-}
+
+have_agent_deck() { command -v agent-deck >/dev/null 2>&1; }
 
 # expect '<partial command line>' '<substring the candidates must contain>'
 expect() {
@@ -78,6 +81,25 @@ expect() {
     (( failed++ ))
     printf 'FAIL %s\n       want substring: %s\n       got:            %s\n' "$line" "$wanted" "${got:-<none>}"
   fi
+}
+
+# expect_live / expect_empty_live — same, but skipped when agent-deck is not
+# installed, because their candidates come from the running CLI. CI has no
+# agent-deck, and a skip there is honest where a pass would not be.
+expect_live() {
+  if ! have_agent_deck; then
+    [[ -n $filter && $1 != *"$filter"* ]] && return 0
+    (( skipped++ )); printf 'skip %s (needs agent-deck)\n' "$1"; return 0
+  fi
+  expect "$@"
+}
+
+expect_empty_live() {
+  if ! have_agent_deck; then
+    [[ -n $filter && $1 != *"$filter"* ]] && return 0
+    (( skipped++ )); printf 'skip %s (needs agent-deck)\n' "$1"; return 0
+  fi
+  expect_empty "$@"
 }
 
 # expect_empty '<partial command line>'   — deliberately offers nothing
@@ -129,7 +151,7 @@ expect 'agent-deck session search --tier '    'instant balanced auto'
 expect 'agent-deck session approve x --choice ' 'once always session'
 expect 'agent-deck session approve x '        'once always session'
 expect 'agent-deck session set-title-lock x ' 'on off'
-expect 'agent-deck skill list --source '      'claude-global'
+expect_live 'agent-deck skill list --source ' 'claude-global'
 expect 'agent-deck session set x '            'title path command'
 
 # free-text options must not fall back to filename completion
@@ -141,21 +163,26 @@ expect_empty 'agent-deck launch --model '
 # compgen's "no match" status and falls through to positional completion, which
 # for `-d` reaches the dash-titled fixture session. Anything whose prefix cannot
 # match a positional candidate (`--zz`) passes either way and pins nothing.
-expect_empty "agent-deck -p $TEST_PROFILE session start -d"
+expect_empty_live "agent-deck -p $TEST_PROFILE session start -d"
 expect_empty 'agent-deck web --zz'
 expect_empty 'agent-deck session start --zz'
 
 # Sanity check on the case above: the fixture session really is completable when
 # it is a positional rather than a flag.
-expect "agent-deck -p $TEST_PROFILE session start " '-dash-session'
+expect_live "agent-deck -p $TEST_PROFILE session start " '-dash-session'
 
 # profile-scoped dynamic values, including positionals past an escaped title
-expect "agent-deck -p $TEST_PROFILE session start "               'Comp\ Test'
-expect "agent-deck -p $TEST_PROFILE remove "                      'Comp\ Test'
-expect "agent-deck -p $TEST_PROFILE session set Comp\\ Test "     'title path command'
-expect "agent-deck -p $TEST_PROFILE group move Comp\\ Test "       'tmp'
-expect "agent-deck -p $TEST_PROFILE --select "                     'Comp\ Test'
-expect 'agent-deck -p '                                            "$TEST_PROFILE"
+expect_live "agent-deck -p $TEST_PROFILE session start "          'Comp\ Test'
+expect_live "agent-deck -p $TEST_PROFILE remove "                 'Comp\ Test'
+expect_live "agent-deck -p $TEST_PROFILE session set Comp\\ Test " 'title path command'
+expect_live "agent-deck -p $TEST_PROFILE group move Comp\\ Test "  'tmp'
+expect_live "agent-deck -p $TEST_PROFILE --select "                'Comp\ Test'
+expect_live 'agent-deck -p '                                       "$TEST_PROFILE"
 
-printf '\n%d passed, %d failed\n' "$passed" "$failed"
+if (( skipped )); then
+  printf '\n%d passed, %d failed, %d skipped (no agent-deck on PATH)\n' \
+    "$passed" "$failed" "$skipped"
+else
+  printf '\n%d passed, %d failed\n' "$passed" "$failed"
+fi
 (( failed == 0 ))

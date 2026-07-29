@@ -14,8 +14,16 @@
 #
 # Reading order is top-down: the entry point first, then one handler per
 # command, then the shared helpers, then the data tables.
+#
+# shellcheck shell=bash
+# SC2207: `COMPREPLY=( $(compgen …) )` is the bash-completion idiom — the word
+# splitting shellcheck warns about is exactly what builds the candidate array.
+# shellcheck disable=SC2207
 
 _agent_deck() {
+  # `split` is unused here but must be declared: `_init_completion -s` assigns it,
+  # and without the local it would leak into the global scope.
+  # shellcheck disable=SC2034
   local cur prev words cword split
   if declare -F _init_completion >/dev/null 2>&1; then
     _init_completion -s || return
