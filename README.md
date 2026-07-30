@@ -3,13 +3,14 @@
 [![CI](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/ci.yml/badge.svg)](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/ci.yml)
 [![upstream drift](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/upstream-drift.yml/badge.svg)](https://github.com/cody-bibliocommons/agent-deck-completions/actions/workflows/upstream-drift.yml)
 
-Tab completion for [`agent-deck`](https://github.com/asheshgoplani/agent-deck) — the
-terminal session manager for AI coding agents — for **zsh** and **bash**.
+Tab completion for **zsh** and **bash** covering
+[`agent-deck`](https://github.com/asheshgoplani/agent-deck), a terminal session
+manager for AI coding agents.
 
-Both files were generated from the CLI's own `flag.NewFlagSet` definitions in
-`cmd/agent-deck/*.go` (v1.10.11), not from hand-copied help text, so the option
-lists match what the binary actually parses. See [AGENTS.md](AGENTS.md) for how
-that was done and how to regenerate after an upstream release.
+The option lists come from agent-deck's own `flag.NewFlagSet` definitions in
+`cmd/agent-deck/*.go` (v1.10.11), so they match what the binary parses rather
+than what its help text claims. [AGENTS.md](AGENTS.md) covers how to regenerate
+them after an upstream release.
 
 ```
 zsh/_agent-deck         zsh completion (compdef, descriptions, per-tag grouping)
@@ -40,7 +41,7 @@ completion does not appear.
 
 ### Manual install
 
-**zsh** — put `_agent-deck` in any directory on `$fpath`:
+**zsh.** Put `_agent-deck` in any directory on `$fpath`:
 
 ```bash
 mkdir -p ~/.local/share/zsh/site-functions
@@ -52,8 +53,8 @@ fpath=(~/.local/share/zsh/site-functions $fpath)
 `/usr/local/share/zsh/site-functions` and `/usr/share/zsh/site-functions` are
 already on zsh's default `$fpath`, so linking there needs no `.zshrc` change.
 
-**bash** — with bash-completion v2 installed, drop it in the user completion dir
-and it loads on demand:
+**bash.** With bash-completion v2 installed, drop the file in the user
+completion dir and bash loads it on demand:
 
 ```bash
 mkdir -p ~/.local/share/bash-completion/completions
@@ -76,7 +77,7 @@ lists the *work* profile's sessions):
 
 | Completes | Source |
 |---|---|
-| sessions (by title **and** id) | `list --json` — zsh shows status/title as the description |
+| sessions (by title **and** id) | `list --json`. zsh shows status and title as the description |
 | groups | `group list --json` (full nested paths) |
 | profiles | `profile list --json` |
 | MCPs | `mcp list --json` |
@@ -89,26 +90,26 @@ lists the *work* profile's sessions):
 | tools (`-c`, `--cmd`, `--agent`) | built-in list: claude, codex, gemini, opencode, copilot, crush, cursor, hermes, kiro-cli, pi, shell |
 | `session set` fields, `--location`, `--tier`, `--choice`, on/off | built-in enums |
 
-Session titles containing spaces complete correctly in both shells (they are
-escaped on insertion, and a half-typed `Comp\ Te` still matches `Comp Test`).
+Both shells handle session titles that contain spaces. They escape the candidate
+on insertion, and a half-typed `Comp\ Te` still matches `Comp Test`.
 
 ## Command reference
 
 Global options, valid before the command: `-p/--profile <name>`,
 `-g/--group <name>`, `--select <id|title>`, `-h/--help`, `-v/--version`.
 
-Almost every command also accepts `--json` and `-q/--quiet`; those are omitted
-below unless they are the only options.
+Almost every command also accepts `--json` and `-q/--quiet`. The table leaves
+those out unless a command has nothing else.
 
 | Command | Arguments | Options |
 |---|---|---|
 | `add` | `[path]` | `-c/--cmd -t/--title -g/--group -p/--parent --model -w/--worktree -b/--new-branch --location --mcp --plugin --channel --extra-arg -Q/--quick --attach --account --sandbox --sandbox-image --ssh --remote-path --wrapper --yolo --gemini-yolo --title-lock --no-title-sync --no-parent --no-channel-link --no-transition-notify --resume-session --tmux-socket` |
 | `launch` | `[path]` | everything in `add` except the ssh/sandbox/quick set, plus `-m/--message --message-file --assert-done --no-assert-done --no-wait --idle-timeout --inherit-group --inherit-telegram-env --wrapper` |
 | `try` | `<name>` | `-c/--cmd -l/--list --no-session --sandbox` |
-| `list`, `ls` | — | `--json --all` |
+| `list`, `ls` |  | `--json --all` |
 | `remove`, `rm` | `<id\|title>` | |
 | `rename`, `mv` | `<id\|title> <new-title>` | |
-| `status` | — | `-v/--verbose` |
+| `status` |  | `-v/--verbose` |
 | `session` | see below | |
 | `fleet` | `status`, `recover` | `recover`: `--yes --dry-run --group --limit --spacing --jitter --verify-poll --verify-timeout --max-failures --max-dead-boots --auth-halt-after` |
 | `mcp` | `list`, `attached [id]`, `attach <id> <mcp>`, `detach <id> <mcp>`, `server start\|stop\|status` | attach/detach: `--global --restart` |
@@ -119,17 +120,17 @@ below unless they are the only options.
 | `remote` | `add <name> <user@host>`, `remove <name>`, `list`, `sessions [name]`, `attach <name> <session>`, `rename <name> <session> <title>`, `update [name]` | `add`: `--agent-deck-path --profile` |
 | `conductor` | `setup <name>`, `teardown <name>`, `status [name]`, `list`, `move <name>`, `migrate-dir <path>` | `setup`: `--agent --description --heartbeat --no-heartbeat --heartbeat-idle-minutes --heartbeat-rules-md --instructions-md --shared-instructions-md --policy-md --shared-policy-md --claude-md --shared-claude-md --no-clear-on-compact --env --env-file`; `teardown`: `--all --remove`; `move`: `--to-profile --force`; `migrate-dir`: `--apply --from --force` |
 | `profile` | `list`, `create <name>`, `delete <name>`, `default [name]` | |
-| `web` | — | `--listen --token --read-only --no-tui --push --push-test-every --push-vapid-subject --insecure-bind` |
+| `web` |  | `--listen --token --read-only --no-tui --push --push-test-every --push-vapid-subject --insecure-bind` |
 | `costs` | `sync`, `summary`, `recompute` | `-n/--dry-run` |
 | `watcher` | `create <kind>`, `import`, `start`, `stop`, `list`, `status`, `test`, `routes`, `install-skill` | `create`: `--name --port --secret --secret-file --topic` |
 | `openclaw`, `oc` | `sync`, `bridge`, `status`, `list`, `send` | `--agent --name` |
 | `inbox` | `drain [id]` | `--json` |
 | `hooks`, `codex-hooks`, `gemini-hooks`, `hermes-hooks`, `cursor-hooks` | `install`, `uninstall`, `status` | |
-| `telegram-doctor` | — | `--json --quiet` |
-| `update` | — | `--check --version` |
-| `migrate-paths` | — | `--dry-run --force` |
-| `uninstall` | — | `--dry-run --keep-data --keep-tmux-config -y` |
-| `version`, `help`, `debug-dump`, `feedback` | — | |
+| `telegram-doctor` |  | `--json --quiet` |
+| `update` |  | `--check --version` |
+| `migrate-paths` |  | `--dry-run --force` |
+| `uninstall` |  | `--dry-run --keep-data --keep-tmux-config -y` |
+| `version`, `help`, `debug-dump`, `feedback` |  | |
 
 ### `session` subcommands
 
@@ -161,20 +162,21 @@ below unless they are the only options.
 | `update <id>` | `--parent --no-parent` |
 | `set-transition-notify <id> on\|off`, `set-title-lock <id> on\|off` | |
 
-Internal plumbing commands (`hook-handler`, `codex-notify`, `notify-daemon`,
-`run-task`, `mcp-proxy`, `creds-refresh`) are deliberately **not** offered.
+The completions leave out six internal plumbing commands on purpose:
+`hook-handler`, `codex-notify`, `notify-daemon`, `run-task`, `mcp-proxy` and
+`creds-refresh`. No human types them.
 
 ## Testing
 
 ```bash
-tests/run.bash          # 40 assertions, one bash process, ~2s
+tests/run.bash          # 42 assertions, one bash process, ~2s
 tests/run.zsh           # 17 assertions through a single pty, ~1min
 zsh -n zsh/_agent-deck && bash -n bash/agent-deck.bash
 ```
 
-Both suites exit non-zero on failure and take an optional filter
-(`tests/run.bash session`). Cases that need live sessions create and remove a
-throwaway profile, so your real sessions are untouched.
+Both suites exit non-zero on failure and take a substring filter
+(`tests/run.bash session`). The cases that need a live session create a throwaway
+profile and remove it on exit, so your own sessions stay untouched.
 
 To eyeball one command line instead of asserting on it:
 
@@ -185,19 +187,18 @@ tests/comptest.bash 'agent-deck mcp attach '
 
 ## Maintenance
 
-Two workflows keep this honest:
+Two workflows guard this repo:
 
-- **CI** (`ci.yml`) — parse-checks and shellchecks every script, asserts every
-  flag in the snapshot is offered by *both* completions
-  (`tools/check-coverage.py`), runs both suites, and round-trips `install.sh`
-  including a check that zsh actually registers `_agent-deck` from a clean
-  `$fpath`.
-- **upstream drift** (`upstream-drift.yml`) — weekly, regenerates
-  `spec/flag-surface.txt` from upstream `agent-deck` and fails (and files an
-  issue with the diff) when its CLI surface has moved. These completions describe
-  someone else's CLI, so that is the way they rot.
+- **CI** (`ci.yml`) parse-checks and shellchecks every script, checks that both
+  completions offer every flag in the snapshot (`tools/check-coverage.py`), runs
+  both suites, and round-trips `install.sh`, including whether zsh registers
+  `_agent-deck` from a clean `$fpath`.
+- **upstream drift** (`upstream-drift.yml`) regenerates `spec/flag-surface.txt`
+  from upstream `agent-deck` every Monday. When agent-deck's CLI surface moves, it
+  files an issue with the diff and fails. Upstream owns that CLI, so its changes
+  are what leave these completions stale.
 
-Refresh the snapshot after intentionally adopting an upstream change:
+Refresh the snapshot once you adopt an upstream change:
 
 ```bash
 python3 tools/extract-flag-surface.py /path/to/agent-deck > spec/flag-surface.txt
@@ -206,12 +207,12 @@ python3 tools/check-coverage.py
 
 ## Known limitations
 
-- `mcp detach` / `skill detach` / `plugin detach` complete from the full catalog
-  rather than only what is attached — the `… attached --json` payloads expose
-  string arrays, not the named objects the generic extractor reads.
-- `--heartbeat` is a duration under `session children` but a boolean under
-  `conductor setup`. Both completions resolve it from the command on the line;
-  bash's positional counting could drift only if that heuristic were wrong.
+- `mcp detach`, `skill detach` and `plugin detach` complete from the full catalog
+  instead of what a session already has attached. The `… attached --json` payloads
+  hold string arrays, which the shared field extractor cannot read.
+- `--heartbeat` takes a duration under `session children` and nothing under
+  `conductor setup`. Both completions resolve it from the command on the line. If
+  that heuristic is ever wrong, bash's positional counting drifts with it.
 - Free-text options (`--title`, `--message`, `--model`, durations, …) offer no
   candidates on purpose, so they do not fall back to filename completion.
 - bash cannot display per-candidate descriptions; zsh does.
