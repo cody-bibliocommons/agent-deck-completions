@@ -215,3 +215,7 @@ python3 tools/check-coverage.py
 - Free-text options (`--title`, `--message`, `--model`, durations, …) offer no
   candidates on purpose, so they do not fall back to filename completion.
 - bash cannot display per-candidate descriptions; zsh does.
+
+---
+
+Created with the assistance of LLM tools.
