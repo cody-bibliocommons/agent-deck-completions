@@ -101,6 +101,10 @@ expect 'agent-deck mcp '                          'attach'
 expect 'agent-deck skill source '                 'add'
 expect 'agent-deck group re'                      'reorder'
 expect 'agent-deck worktree '                     'finish'
+# `--revoke` is trust-scripts' only flag, so zsh inserts it rather than listing
+# it, and what comes back is the text appended to the typed '-'.
+expect 'agent-deck worktree trust-scripts -'      '-revoke'
+expect 'agent-deck status --'                     '--stale'
 expect 'agent-deck add -c '                       'kiro-cli'
 expect 'agent-deck add --location '               'subdirectory'
 expect 'agent-deck session search --tier '        'balanced'

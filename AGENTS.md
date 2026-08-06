@@ -53,8 +53,8 @@ aliases come from the `case "…":` lists in `session_cmd.go`, `mcp_cmd.go`,
 
 Never rebuild the completions from `--help`.
 
-The completions match agent-deck v1.10.11. `spec/flag-surface.txt` comes from
-upstream `main` at `580e772`, whose flag surface matches that tag.
+The completions match agent-deck v1.11.0. `spec/flag-surface.txt` comes from
+upstream `main` at `4630080`, whose flag surface matches that tag.
 
 ### kiro-cli sits ahead of upstream
 
@@ -193,8 +193,8 @@ Then run the suites, which is what catches real breakage. Both exit non-zero on
 failure and take a substring filter:
 
 ```bash
-tests/run.bash          # 42 assertions, one bash process, ~2s
-tests/run.zsh           # 17 assertions, one pty, ~1min
+tests/run.bash          # 45 assertions, one bash process, ~2s
+tests/run.zsh           # 19 assertions, one pty, ~1min
 tests/run.bash session  # only the session cases
 ```
 
@@ -205,7 +205,7 @@ is what makes that safe.
 
 Cases whose candidates come from the running CLI skip themselves when `agent-deck`
 is missing from `PATH`, which is how CI stays honest instead of passing on empty
-output. Expect 33 passed and 9 skipped from the bash suite in that state.
+output. Expect 36 passed and 9 skipped from the bash suite in that state.
 
 Do not rewrite the suites to spawn a process per case. Sourcing bash-completion
 pulls in `/etc/bash_completion.d/*`, where one entry on the development machine

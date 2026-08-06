@@ -41,7 +41,12 @@ _agent-deck() {
     list|ls)          _arguments -s '--json[output as JSON]' '--all[list sessions from all profiles]' && ret=0 ;;
     remove|rm)        _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0 ;;
     rename|mv)        _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' '2:new title:' && ret=0 ;;
-    status)           _arguments -s $__agent_deck_common_opts '(-v --verbose)'{-v,--verbose}'[show a detailed session list]' && ret=0 ;;
+    status)
+      _arguments -s $__agent_deck_common_opts \
+        '(-v --verbose)'{-v,--verbose}'[show a detailed session list]' \
+        '--stale[list stale-session candidates; read-only, never stops or removes]' \
+        '--threshold[staleness window for --stale]:duration:(24h 48h 168h)' && ret=0
+      ;;
     session)          __agent_deck_session && ret=0 ;;
     fleet)            __agent_deck_fleet && ret=0 ;;
     mcp)              __agent_deck_mcp && ret=0 ;;
@@ -812,6 +817,7 @@ __agent_deck_worktree() {
     'info:show worktree info for a session'
     'finish:merge the branch, remove the worktree and delete the session'
     'cleanup:find and remove orphaned worktrees/sessions'
+    'trust-scripts:approve a repo'\''s .agent-deck/worktree-*.sh scripts'
     'help:show worktree help'
   )
 
@@ -834,6 +840,11 @@ __agent_deck_worktree() {
           ;;
         cleanup)
           _arguments -s '--json[output as JSON]' '--force[remove without confirmation]' && ret=0
+          ;;
+        # No --json here: trust-scripts parses only --revoke.
+        trust-scripts)
+          _arguments -s '--revoke[remove stored trust instead of granting it]' \
+            '1:repository:_files -/' && ret=0
           ;;
       esac
       ;;

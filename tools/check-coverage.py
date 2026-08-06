@@ -31,7 +31,6 @@ OMITTED = {
     'endpoint': 'creds-refresh, internal',
     'interval': 'creds-refresh/watcher-internal',
     'once': 'creds-refresh + notify-daemon, internal',
-    'threshold': 'creds-refresh, internal',
     'child': 'run-task, internal',
     'foo': 'test-only flag in main.go',
 }
