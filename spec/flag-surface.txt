@@ -75,7 +75,7 @@
 [skill source add] description:string json:bool q:bool quiet:bool
 [skill source list] json:bool q:bool quiet:bool
 [skill source remove] json:bool q:bool quiet:bool
-[status] json:bool q:bool quiet:bool v:bool verbose:bool
+[status] json:bool q:bool quiet:bool stale:bool threshold:string v:bool verbose:bool
 [telegram-doctor] json:bool quiet:bool
 [try] c:string cmd:string json:bool l:bool list:bool no-session:bool q:bool quiet:bool sandbox:bool
 [uninstall] dry-run:bool keep-data:bool keep-tmux-config:bool y:bool
@@ -92,3 +92,4 @@
 [worktree finish] force:bool into:string json:bool keep-branch:bool no-merge:bool
 [worktree info] json:bool
 [worktree list] json:bool
+[worktree trust-scripts] revoke:bool

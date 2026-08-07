@@ -60,7 +60,8 @@ __agent_deck_complete_arguments_of() {
     try)                    __agent_deck_try ;;
     list|ls)                __agent_deck_words '--json --all' ;;
     remove|rm|rename|mv)    __agent_deck_session_by_name ;;
-    status)                 __agent_deck_words "$__agent_deck_common_opts -v --verbose" ;;
+    status)                 __agent_deck_words "$__agent_deck_common_opts -v --verbose
+                            --stale --threshold" ;;
     session)                __agent_deck_session ;;
     fleet)                  __agent_deck_fleet ;;
     mcp)                    __agent_deck_mcp ;;
@@ -293,18 +294,21 @@ __agent_deck_group() {
 }
 
 __agent_deck_worktree() {
-  __agent_deck_offer_subcommands 'list ls info finish cleanup help' && return
+  __agent_deck_offer_subcommands 'list ls info finish cleanup trust-scripts help' && return
 
+  # `trust-scripts` is the one subcommand with no --json: it parses only --revoke.
   local opts='--json'
   case ${pos[1]-} in
-    finish)  opts+=' --into --no-merge --keep-branch --force --abort' ;;
-    cleanup) opts+=' --force' ;;
+    finish)        opts+=' --into --no-merge --keep-branch --force --abort' ;;
+    cleanup)       opts+=' --force' ;;
+    trust-scripts) opts='--revoke' ;;
   esac
   __agent_deck_offer_options "$opts" && return
 
   local argi=$(( npos - 1 ))
   case ${pos[1]-} in
-    info|finish) (( argi == 1 )) && __agent_deck_dyn sessions ;;
+    info|finish)   (( argi == 1 )) && __agent_deck_dyn sessions ;;
+    trust-scripts) (( argi == 1 )) && __agent_deck_dirs ;;
   esac
 }
 
@@ -416,6 +420,7 @@ __agent_deck_option_value() {
     --source)             __agent_deck_dyn skill-sources; return 0 ;;
     --location)           __agent_deck_words "$__agent_deck_worktree_locations"; return 0 ;;
     --tier)               __agent_deck_words "$__agent_deck_search_tiers"; return 0 ;;
+    --threshold)          __agent_deck_words "$__agent_deck_stale_thresholds"; return 0 ;;
     --choice)             __agent_deck_words "$__agent_deck_approval_choices"; return 0 ;;
     --remote-path|--default-path|--from)
                           __agent_deck_dirs; return 0 ;;
@@ -592,7 +597,7 @@ __agent_deck_opt_takes_value() {
     --stream-char-budget|--stream-tool-budget|--max-chars|--out|--choice) return 0 ;;
     --named-key|--text|--source|--to-profile|--into|--default-path) return 0 ;;
     --max-concurrent|--position|--env|--env-file|--name|--version|--from) return 0 ;;
-    --spacing|--jitter|--verify-poll|--verify-timeout|--max-failures) return 0 ;;
+    --spacing|--jitter|--verify-poll|--verify-timeout|--max-failures|--threshold) return 0 ;;
     --max-dead-boots|--auth-halt-after|--listen|--token|--push-test-every) return 0 ;;
     --push-vapid-subject|--agent|--description|--heartbeat-idle-minutes) return 0 ;;
     --heartbeat-rules-md|--instructions-md|--shared-instructions-md) return 0 ;;
@@ -624,6 +629,9 @@ __agent_deck_tools='claude codex gemini opencode copilot crush cursor hermes kir
 __agent_deck_approval_choices='once always session'
 __agent_deck_worktree_locations='sibling subdirectory'
 __agent_deck_search_tiers='instant balanced auto'
+# `status --threshold` takes any Go duration; these are the three upstream's own
+# help text suggests, offered as a starting point rather than as the valid set.
+__agent_deck_stale_thresholds='24h 48h 168h'
 __agent_deck_watcher_kinds='webhook ntfy github slack'
 __agent_deck_on_off='on off'
 

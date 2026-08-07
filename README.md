@@ -89,6 +89,7 @@ lists the *work* profile's sessions):
 | git branches (`-w`, `--worktree`, `--into`) | `git for-each-ref refs/heads` |
 | tools (`-c`, `--cmd`, `--agent`) | built-in list: claude, codex, gemini, opencode, copilot, crush, cursor, hermes, kiro-cli, pi, shell |
 | `session set` fields, `--location`, `--tier`, `--choice`, on/off | built-in enums |
+| `--threshold` (`status --stale`) | 24h, 48h, 168h — suggestions, not the valid set; any Go duration works |
 
 Both shells handle session titles that contain spaces. They escape the candidate
 on insertion, and a half-typed `Comp\ Te` still matches `Comp Test`.
@@ -109,14 +110,14 @@ those out unless a command has nothing else.
 | `list`, `ls` |  | `--json --all` |
 | `remove`, `rm` | `<id\|title>` | |
 | `rename`, `mv` | `<id\|title> <new-title>` | |
-| `status` |  | `-v/--verbose` |
+| `status` |  | `-v/--verbose --stale --threshold` |
 | `session` | see below | |
 | `fleet` | `status`, `recover` | `recover`: `--yes --dry-run --group --limit --spacing --jitter --verify-poll --verify-timeout --max-failures --max-dead-boots --auth-halt-after` |
 | `mcp` | `list`, `attached [id]`, `attach <id> <mcp>`, `detach <id> <mcp>`, `server start\|stop\|status` | attach/detach: `--global --restart` |
 | `skill` | `list`, `attached [id]`, `attach <id> <skill>`, `detach <id> <skill>`, `source list\|add\|remove` | `--source --restart`; `source add`: `--description` |
 | `plugin` | `list`, `attached [id]`, `attach <id> <plugin>`, `detach <id> <plugin>` | `--restart --no-channel-link` |
 | `group` | `list`, `show\|info <name>`, `create <name>`, `update <name>`, `delete <name>`, `move <id> <group>`, `change <group> [dest]`, `reorder <name>` | `--resolved --parent --default-path --clear-default-path --max-concurrent --force --to-profile -u/--up -d/--down -p/--position` |
-| `worktree`, `wt` | `list`, `info <session>`, `finish <session>`, `cleanup` | `finish`: `--into --no-merge --keep-branch --force --abort`; `cleanup`: `--force` |
+| `worktree`, `wt` | `list`, `info <session>`, `finish <session>`, `cleanup`, `trust-scripts <repo>` | `finish`: `--into --no-merge --keep-branch --force --abort`; `cleanup`: `--force`; `trust-scripts`: `--revoke` |
 | `remote` | `add <name> <user@host>`, `remove <name>`, `list`, `sessions [name]`, `attach <name> <session>`, `rename <name> <session> <title>`, `update [name]` | `add`: `--agent-deck-path --profile` |
 | `conductor` | `setup <name>`, `teardown <name>`, `status [name]`, `list`, `move <name>`, `migrate-dir <path>` | `setup`: `--agent --description --heartbeat --no-heartbeat --heartbeat-idle-minutes --heartbeat-rules-md --instructions-md --shared-instructions-md --policy-md --shared-policy-md --claude-md --shared-claude-md --no-clear-on-compact --env --env-file`; `teardown`: `--all --remove`; `move`: `--to-profile --force`; `migrate-dir`: `--apply --from --force` |
 | `profile` | `list`, `create <name>`, `delete <name>`, `default [name]` | |
