@@ -8,7 +8,7 @@ Tab completion for **zsh** and **bash** covering
 manager for AI coding agents.
 
 The option lists come from agent-deck's own `flag.NewFlagSet` definitions in
-`cmd/agent-deck/*.go` (v1.10.11), so they match what the binary parses rather
+`cmd/agent-deck/*.go` (v1.11.0), so they match what the binary parses rather
 than what its help text claims. [AGENTS.md](AGENTS.md) covers how to regenerate
 them after an upstream release.
 

@@ -1,7 +1,7 @@
 # bash completion for agent-deck — terminal session manager for AI coding agents
 #   https://github.com/asheshgoplani/agent-deck
 #
-# Generated against agent-deck v1.10.11 (commands and flags taken from the CLI's
+# Generated against agent-deck v1.11.0 (commands and flags taken from the CLI's
 # own flag sets in cmd/agent-deck/*.go).
 #
 # Install: see README.md — either
