@@ -16,12 +16,15 @@ repo only describes it, and never builds or vendors it.
 | `bash/agent-deck.bash` | bash completion, ~640 lines: a small `_agent_deck` entry point plus one handler per command |
 | `install.sh` | symlinks both files into place; `--bash`, `--zsh`, `--system`, `--uninstall` |
 | `spec/flag-surface.txt` | snapshot of agent-deck's CLI surface, the ground truth for the checks |
+| `spec/agent-deck-version.txt` | the agent-deck release that snapshot came from; drives the tag |
 | `tools/extract-flag-surface.py` | regenerates that snapshot from an agent-deck checkout |
 | `tools/check-coverage.py` | asserts both completions offer every flag and tool in the snapshot |
+| `tools/check-version-refs.py` | asserts every `vX.Y.Z` in the repo matches the version file |
 | `tests/run.bash`, `tests/run.zsh` | assertion suites, non-zero exit on failure |
 | `tests/comptest.bash`, `tests/comptest.zsh` | print the candidates for one command line |
 | `.github/workflows/ci.yml` | parse, shellcheck, coverage, suites, install round-trip |
 | `.github/workflows/upstream-drift.yml` | weekly check that upstream has not moved |
+| `.github/workflows/version-tag.yml` | tags main when `spec/agent-deck-version.txt` changes |
 
 `install.sh` creates symlinks rather than copies, so `git pull` updates the live
 completions and nobody needs to reinstall. On the development machine,
@@ -160,7 +163,7 @@ development. Leave the scan alone.
 
 ## How to change something
 
-Adding, renaming or removing a flag touches four places. Work in this order:
+Adding, renaming or removing a flag touches five places. Work in this order:
 
 1. Regenerate the snapshot from an agent-deck checkout you trust, and check that
    the checkout sits on upstream `main`:
@@ -168,9 +171,20 @@ Adding, renaming or removing a flag touches four places. Work in this order:
 2. Edit **both** completions. bash keeps flat option strings per command; zsh
    keeps `_arguments` specs with descriptions. Keep the descriptions and the
    README's command table in step with each other.
-3. Run `python3 tools/check-coverage.py`. It fails on any snapshot flag or tool
+3. Put the agent-deck release you matched in `spec/agent-deck-version.txt`, and
+   update the six prose references to it — the two `Generated against` headers,
+   the README's provenance sentence and its `git checkout` example, and both
+   mentions in AGENTS.md. `python3 tools/check-version-refs.py` fails on any it
+   finds stale, and landing the bump on main is what creates the
+   `agent-deck-vX.Y.Z` tag.
+4. Run `python3 tools/check-coverage.py`. It fails on any snapshot flag or tool
    that only one shell offers.
-4. Run both suites, and add a case for behaviour you care about keeping.
+5. Run both suites, and add a case for behaviour you care about keeping.
+
+Step 3 is its own step because it is the one that has actually been forgotten:
+a drift fix bumped AGENTS.md's provenance line and left the other four claiming
+the previous release. `check-version-refs.py` exists so that stays a CI failure
+rather than something a reader has to notice.
 
 Adding a whole command means one more `__agent_deck_<cmd>` handler in each file
 plus an entry in the bash dispatch (`__agent_deck_complete_arguments_of`), the zsh
@@ -223,7 +237,8 @@ should print `_agent-deck`. In bash the loader is lazy, so trigger it first:
 `ci.yml` runs on push and pull request, in four jobs:
 
 - **parse + shellcheck**, one file per invocation, for the reason above.
-- **flag coverage in both shells**, running `tools/check-coverage.py`.
+- **flag coverage in both shells**, running `tools/check-coverage.py` and
+  `tools/check-version-refs.py`.
 - **completion suites**, with `agent-deck` absent, so the live cases skip.
 - **install.sh round-trip**, which installs, asserts both symlinks resolve into
   the checkout, uninstalls, asserts they are gone, then reinstalls the zsh half
@@ -237,6 +252,20 @@ control, so upstream movement is the failure mode worth watching for.
 
 That workflow's `paths` filter does not match when a branch is created, so a fresh
 repo needs one manual `gh workflow run upstream-drift.yml` to prove it works.
+
+`version-tag.yml` runs when `spec/agent-deck-version.txt` changes on main, and
+pushes an annotated `agent-deck-vX.Y.Z` tag for whatever that file now says. It
+never moves an existing tag: the tag marks the commit that first described that
+release, and repointing it would invalidate any checkout someone pinned to it.
+
+The tag cannot come from `upstream-drift.yml`. That workflow fires while the
+completions are still *behind* upstream, so the commit it sees describes the
+previous release. The catch-up commit is the one worth tagging, and bumping the
+version file is what identifies it.
+
+There are no GitHub Releases, and adding them would be a downgrade: `install.sh`
+symlinks into a git checkout and the documented update path is `git pull`, so a
+release tarball would hand someone a frozen copy with no way to update.
 
 ## Design notes
 

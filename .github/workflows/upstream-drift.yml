@@ -80,7 +80,10 @@ jobs:
             echo
             echo "To resolve: apply the deltas to **both** completions, refresh the snapshot"
             echo "with \`python3 tools/extract-flag-surface.py <checkout> > spec/flag-surface.txt\`,"
-            echo "then run \`python3 tools/check-coverage.py\` and both suites. See AGENTS.md."
+            echo "and put the agent-deck release you matched in \`spec/agent-deck-version.txt\`"
+            echo "(that bump is what tags the catch-up commit). Then run"
+            echo "\`python3 tools/check-coverage.py\`, \`python3 tools/check-version-refs.py\`"
+            echo "and both suites. See AGENTS.md."
             echo
             echo "[Workflow run]($RUN_URL)"
             echo

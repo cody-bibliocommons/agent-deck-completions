@@ -51,6 +51,9 @@ jobs:
       - name: Every snapshot flag is offered by bash and zsh
         run: python3 tools/check-coverage.py
 
+      - name: Every version reference matches spec/agent-deck-version.txt
+        run: python3 tools/check-version-refs.py
+
   test:
     name: completion suites
     runs-on: ubuntu-latest
