@@ -1,0 +1,76 @@
+name: version tag
+
+# This repo has no version of its own — it describes someone else's CLI, and the
+# only meaningful version here is the agent-deck release the completions match.
+# `spec/agent-deck-version.txt` records that. When it changes on main, this tags
+# the commit, so anyone pinned to an older agent-deck can check out the
+# completions that described it instead of bisecting history for them.
+#
+# This deliberately does not hang off upstream-drift.yml. That workflow fires
+# when upstream has moved and the completions have *not* caught up yet, so the
+# commit it sees still describes the previous release; tagging there would mint
+# a tag that names a version the tagged tree does not implement. The catch-up
+# commit is the one worth tagging, and changing the version file is what marks it.
+#
+# Tags only, no GitHub Release: install.sh symlinks into a git checkout and the
+# README's update path is `git pull`, so a release tarball would hand someone a
+# frozen copy with no way to update.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'spec/agent-deck-version.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out with full history and tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Read the declared agent-deck version
+        id: version
+        run: |
+          version=$(tr -d '[:space:]' < spec/agent-deck-version.txt)
+          case $version in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "::error::spec/agent-deck-version.txt is not a vX.Y.Z version: '$version'"
+              exit 1
+              ;;
+          esac
+          {
+            echo "version=$version"
+            echo "tag=agent-deck-$version"
+          } >> "$GITHUB_OUTPUT"
+
+      # Re-running this workflow, or landing an unrelated edit to the version
+      # file, must not fail — an existing tag is the expected steady state, not
+      # an error. The tag is never moved: it marks the commit that first
+      # described this version, and repointing it would silently invalidate
+      # every checkout someone already pinned.
+      - name: Tag this commit unless the tag already exists
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG already exists at $(git rev-list -n 1 "$TAG"), leaving it alone."
+            exit 0
+          fi
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$TAG" -m "Completions describing agent-deck $VERSION"
+          git push origin "$TAG"
+          echo "Tagged $(git rev-parse --short HEAD) as $TAG"

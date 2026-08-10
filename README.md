@@ -39,6 +39,19 @@ completion does not appear.
 `/usr/local/share/zsh/site-functions`, which is on zsh's default `$fpath`), and
 `--uninstall` are also available.
 
+### Pinning to an older agent-deck
+
+`main` tracks upstream, so it can offer a flag your installed binary does not
+have yet — which agent-deck rejects with `flag provided but not defined`. If you
+are pinned to an older release, check out the tag that matches it:
+
+```bash
+git checkout agent-deck-v1.11.0   # git tag --list 'agent-deck-*' to see them
+```
+
+The symlinks follow the checkout, so nothing needs reinstalling. `git checkout
+main` puts you back on the tracking branch.
+
 ### Manual install
 
 **zsh.** Put `_agent-deck` in any directory on `$fpath`:
