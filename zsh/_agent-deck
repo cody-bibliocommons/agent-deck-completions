@@ -3,7 +3,7 @@
 # zsh completion for agent-deck — terminal session manager for AI coding agents
 #   https://github.com/asheshgoplani/agent-deck
 #
-# Generated against agent-deck v1.11.0 (commands and flags taken from the
+# Generated against agent-deck v1.16.4 (commands and flags taken from the
 # CLI's own flag sets in cmd/agent-deck/*.go).
 #
 # Install: keep this file as `_agent-deck` in a directory on $fpath, then
@@ -62,12 +62,30 @@ _agent-deck() {
     watcher)          __agent_deck_watcher && ret=0 ;;
     openclaw|oc)      __agent_deck_openclaw && ret=0 ;;
     inbox)
-      _arguments -C '1:subcommand:((drain\:"drain and print pending events"))' '*:: :->iargs' && ret=0
-      [[ $state == iargs ]] && { _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 }
+      _arguments -C '1:subcommand:((drain\:"drain and print pending events" export\:"export records without consuming" writer-status\:"check if a writer is recording"))' '*:: :->iargs' && ret=0
+      [[ $state == iargs ]] && {
+        case ${words[1]} in
+          drain)         _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 ;;
+          export|writer-status)
+                         _arguments -s '--json[output as JSON]' && ret=0 ;;
+          *) _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 ;;
+        esac
+      }
       ;;
     hooks|codex-hooks|gemini-hooks|hermes-hooks|cursor-hooks)
       __agent_deck_hooks && ret=0 ;;
     telegram-doctor)  _arguments -s '--json[emit machine-readable JSON]' '--quiet[only print drift]' && ret=0 ;;
+    accounts)
+      _arguments -s '--json[output as JSON]' && ret=0 ;;
+    agents)
+      _arguments -s '--json[output as JSON]' '--no-remote[skip remote machines]' && ret=0 ;;
+    agent)            __agent_deck_agent && ret=0 ;;
+    doctor)
+      _arguments -s '--json[output as JSON]' && ret=0 ;;
+    telemetry)        __agent_deck_telemetry && ret=0 ;;
+    deepseek)         __agent_deck_deepseek && ret=0 ;;
+    remote-agent)
+      _arguments -s '-h[show help]' '--help[show help]' && ret=0 ;;
     update)
       _arguments -s '--check[only check, do not install]' \
         '--version[install a specific released version]:version:' && ret=0
@@ -167,6 +185,13 @@ __agent_deck_commands() {
     'uninstall:uninstall Agent Deck'
     'version:show version'
     'help:show help'
+    'accounts:list named Claude account slots'
+    'agents:list adopted agents grouped by machine'
+    'agent:manage agent definitions'
+    'doctor:check named Claude account directories'
+    'telemetry:manage opt-in anonymous usage telemetry'
+    'deepseek:inspect the DeepSeek Harness integration'
+    'remote-agent:serve a persistent JSON-line channel for a local TUI'
   )
   _describe -t commands 'agent-deck command' cmds
 }
@@ -264,6 +289,7 @@ __agent_deck_tools() {
   tools=(
     'claude:Claude Code'
     'codex:OpenAI Codex CLI'
+    'deepseek:DeepSeek Harness (dsh)'
     'gemini:Gemini CLI'
     'opencode:OpenCode'
     'copilot:GitHub Copilot CLI'
@@ -355,6 +381,7 @@ __agent_deck_add() {
     '--wrapper[wrapper command, {command} expands to the tool command]:wrapper:' \
     '--yolo[enable YOLO mode for Gemini or Codex sessions]' \
     '--gemini-yolo[alias for --yolo]' \
+    '--create-dir[create the project directory if it does not exist]' \
     '::project directory:_files -/'
 }
 
@@ -369,6 +396,7 @@ __agent_deck_launch() {
     '--inherit-group[place the child in the parent session'\''s group]' \
     '--inherit-telegram-env[keep TELEGRAM_* env vars in the child]' \
     '--wrapper[wrapper command, {command} expands to the tool command]:wrapper:' \
+    '--account[named account slot]:account:' \
     '::project directory:_files -/'
 }
 
@@ -434,6 +462,7 @@ __agent_deck_session() {
             '--message-file[read the initial message from a file]:file:_files' \
             '--attach[attach to the session after starting]' \
             '--yolo[enable YOLO mode for Gemini or Codex]' \
+            '--no-wait[do not wait for the agent to be ready before sending]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         stop|archive|unarchive|unset-parent|show)
@@ -866,6 +895,7 @@ __agent_deck_remote() {
     'attach:attach to a remote session'
     'rename:rename a remote session'
     'update:install/upgrade agent-deck on remote(s)'
+    'drain:pull completion records from a remote into the local inbox'
   )
 
   _arguments -C '1:subcommand:->subcmd' '*:: :->args' && ret=0
@@ -896,6 +926,12 @@ __agent_deck_remote() {
           _arguments '1:remote:__agent_deck_remotes' \
             '2:session:__agent_deck_remote_sessions' \
             '3:new title:' && ret=0
+          ;;
+        drain)
+          _arguments -s \
+            '--into[local session id to receive the records]:session:__agent_deck_sessions' \
+            '--json[output as JSON]' \
+            '1:remote:__agent_deck_remotes' && ret=0
           ;;
       esac
       ;;
@@ -984,7 +1020,7 @@ __agent_deck_fleet() {
   case $state in
     args)
       case ${words[1]} in
-        status) _arguments -s $__agent_deck_common_opts && ret=0 ;;
+        status) _arguments -s $__agent_deck_common_opts '--group-by-credential[group by credential]' && ret=0 ;;
         recover)
           _arguments -s $__agent_deck_common_opts \
             '--yes[actually recover instead of planning]' \
@@ -997,7 +1033,8 @@ __agent_deck_fleet() {
             '--verify-timeout[how long to wait for a boot to verify]:duration:' \
             '--max-failures[abort after this many failures]:count:' \
             '--max-dead-boots[abort after this many dead boots]:count:' \
-            '--auth-halt-after[halt after this many auth failures]:count:' && ret=0
+            '--auth-halt-after[halt after this many auth failures]:count:' \
+            '--group-by-credential[group sessions by credential for batched recovery]' && ret=0
           ;;
       esac
       ;;
@@ -1029,6 +1066,7 @@ __agent_deck_web() {
   _arguments -s \
     '--listen[listen address for the web server]:address:_hosts' \
     '--token[bearer token for API/WS access]:token:' \
+    '--token-file[read the bearer token from this file]:file:_files' \
     '--read-only[run in read-only mode (input disabled)]' \
     '--no-tui[headless mode (HTTP server only)]' \
     '--push[enable web push notifications]' \
@@ -1121,6 +1159,82 @@ __agent_deck_openclaw() {
 
 __agent_deck_hooks() {
   _arguments '1:subcommand:((install\:"install or upgrade the hook" uninstall\:"remove the hook" status\:"show the hook install status"))'
+}
+
+__agent_deck_agent() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  local -a subcmds
+  subcmds=(
+    'adopt:introspect a target and emit a disabled definition'
+    'list:list adopted agents (same as agents)'
+    'ls:list adopted agents (same as agents)'
+    'show:show one agent'\''s definition, triggers and connectors'
+    'help:show agent help'
+  )
+
+  _arguments -C '1:subcommand:->subcmd' '*:: :->args' && ret=0
+
+  case $state in
+    subcmd) _describe -t agent-commands 'agent command' subcmds && ret=0 ;;
+    args)
+      case ${words[1]} in
+        adopt)
+          _arguments -s '--json[output the plan as JSON]' \
+            '--write[write the generated definitions (default: dry run)]' \
+            '--manager[post name that non-manager roles report to]:post:' \
+            '1:target:_files -/' && ret=0
+          ;;
+        show)
+          _arguments -s '--json[output as JSON]' \
+            '1:name:' && ret=0
+          ;;
+        list|ls)
+          _arguments -s '--json[output as JSON]' '--no-remote[skip remote machines]' && ret=0
+          ;;
+      esac
+      ;;
+  esac
+  return ret
+}
+
+__agent_deck_telemetry() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+
+  _arguments -C \
+    '1:subcommand:((status\:"show consent and telemetry state" enable\:"opt in to anonymous telemetry" disable\:"opt out and delete install id" preview\:"print the candidate JSON body" show-last\:"print the last sent report" reset-id\:"rotate the install id" help\:"show telemetry help"))' \
+    '*:: :->args' && ret=0
+
+  case $state in
+    args)
+      _arguments -s '--json[machine-readable output]' && ret=0
+      ;;
+  esac
+  return ret
+}
+
+__agent_deck_deepseek() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+
+  _arguments -C \
+    '1:subcommand:((status\:"resolved binary, DSH_HOME, profile and resume support" profiles\:"list profiles under DSH_HOME" sessions\:"list dsh session IDs for a workspace" help\:"show deepseek help"))' \
+    '*:: :->args' && ret=0
+
+  case $state in
+    args)
+      case ${words[1]} in
+        sessions)
+          _arguments -s '--json[output as JSON]' '1:workspace:_files -/' && ret=0
+          ;;
+        *)
+          _arguments -s '--json[output as JSON]' && ret=0
+          ;;
+      esac
+      ;;
+  esac
+  return ret
 }
 
 _agent-deck "$@"

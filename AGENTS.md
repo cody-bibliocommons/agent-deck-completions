@@ -56,14 +56,14 @@ aliases come from the `case "…":` lists in `session_cmd.go`, `mcp_cmd.go`,
 
 Never rebuild the completions from `--help`.
 
-The completions match agent-deck v1.11.0. `spec/flag-surface.txt` comes from
-upstream `main` at `4630080`, whose flag surface matches that tag.
+The completions match agent-deck v1.16.4. `spec/flag-surface.txt` comes from
+upstream `main` at `61cc4d6`, whose flag surface matches that tag.
 
 ### kiro-cli sits ahead of upstream
 
 `kiro-cli` entered the tool list from a local checkout that was sitting on the
 unmerged branch `feat/kiro-cli-tool`. Upstream `main` has no mention of it, and
-the v1.11.0 binary does not know it. Keep it: `--cmd` takes any command string,
+the v1.16.4 binary does not know it. Keep it: `--cmd` takes any command string,
 so offering the name cannot be wrong, and removing it would cost you the entry
 once that branch lands.
 

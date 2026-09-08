@@ -1,6 +1,10 @@
-[commands] --help --version -h -v add codex-hooks codex-notify conductor costs creds-refresh cursor-hooks debug-dump feedback fleet gemini-hooks group help hermes-hooks hook-handler hooks inbox launch list ls mcp mcp-proxy migrate-paths mv notify-daemon oc openclaw plugin profile remote remove rename rm run-task session skill status telegram-doctor try uninstall update version watcher web worktree wt
-[tools] claude codex copilot crush cursor gemini hermes opencode pi
-[add] Q:bool account:string attach:bool b:bool c:string cmd:string g:string gemini-yolo:bool group:string json:bool location:string model:string new-branch:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool p:string parent:string q:bool quick:bool quiet:bool remote-path:string resume-session:string sandbox:bool sandbox-image:string ssh:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string yolo:bool
+[commands] --help --version -h -v accounts add agent agents codex-hooks codex-notify conductor costs creds-refresh cursor-hooks debug-dump deepseek doctor feedback fleet gemini-hooks group help hermes-hooks hook-handler hooks inbox launch list ls mcp mcp-proxy migrate-paths mv notify-daemon oc openclaw plugin profile remote remote-agent remove rename rm run-task session skill status telegram-doctor telemetry try uninstall update version watcher web worktree wt
+[tools] claude codex copilot crush cursor deepseek gemini hermes opencode pi
+[accounts] json:bool
+[add] Q:bool account:string attach:bool b:bool c:string cmd:string create-dir:bool g:string gemini-yolo:bool group:string json:bool location:string model:string new-branch:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool p:string parent:string q:bool quick:bool quiet:bool remote-path:string resume-session:string sandbox:bool sandbox-image:string ssh:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string yolo:bool
+[agent adopt] json:bool manager:string write:bool
+[agent show] json:bool
+[agents] json:bool no-remote:bool
 [conductor list] json:bool profile:string
 [conductor migrate-dir] apply:bool force:bool from:string json:bool
 [conductor move] force:bool json:bool q:bool quiet:bool to-profile:string
@@ -9,8 +13,9 @@
 [conductor teardown] all:bool json:bool remove:bool
 [costs summary] json:bool
 [creds-refresh] config-dir:var endpoint:string interval:duration once:bool threshold:duration
-[fleet recover] auth-halt-after:int dry-run:bool jitter:float64 json:bool limit:int max-dead-boots:int max-failures:int q:bool quiet:bool spacing:duration verify-poll:duration verify-timeout:duration yes:bool
-[fleet status] json:bool q:bool quiet:bool
+[doctor] json:bool
+[fleet recover] auth-halt-after:int dry-run:bool group-by-credential:bool jitter:float64 json:bool limit:int max-dead-boots:int max-failures:int q:bool quiet:bool spacing:duration verify-poll:duration verify-timeout:duration yes:bool
+[fleet status] group-by-credential:bool json:bool q:bool quiet:bool
 [group change] json:bool q:bool quiet:bool
 [group create] default-path:string json:bool max-concurrent:int parent:string q:bool quiet:bool
 [group delete] force:bool json:bool q:bool quiet:bool
@@ -21,7 +26,9 @@
 [group update] clear-default-path:bool default-path:string json:bool max-concurrent:int q:bool quiet:bool
 [inbox]
 [inbox drain] json:bool
-[launch] assert-done:bool b:bool c:string cmd:string g:string group:string idle-timeout:string inherit-group:bool inherit-telegram-env:bool json:bool location:string m:string message:string message-file:string model:string new-branch:bool no-assert-done:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool no-wait:bool p:string parent:string q:bool quiet:bool resume-session:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string wrapper:string
+[inbox export] json:bool
+[inbox writer-status] json:bool
+[launch] account:string assert-done:bool b:bool c:string cmd:string g:string group:string idle-timeout:string inherit-group:bool inherit-telegram-env:bool json:bool location:string m:string message:string message-file:string model:string new-branch:bool no-assert-done:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool no-wait:bool p:string parent:string q:bool quiet:bool resume-session:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string wrapper:string
 [list] all:bool json:bool
 [mcp attach] global:bool json:bool q:bool quiet:bool restart:bool
 [mcp attached] json:bool q:bool quiet:bool
@@ -37,6 +44,7 @@
 [openclaw send] agent:string
 [openclaw sync] json:bool
 [remote add] agent-deck-path:string profile:string
+[remote drain] into:string json:bool
 [remote list] json:bool
 [remote sessions] json:bool
 [remove] json:bool q:bool quiet:bool
@@ -63,7 +71,7 @@
 [session set-title-lock] json:bool q:bool quiet:bool
 [session set-transition-notify] json:bool q:bool quiet:bool
 [session show] json:bool q:bool quiet:bool
-[session start] attach:bool json:bool m:string message:string message-file:string q:bool quiet:bool yolo:bool
+[session start] attach:bool json:bool m:string message:string message-file:string no-wait:bool q:bool quiet:bool yolo:bool
 [session stop] json:bool q:bool quiet:bool
 [session switch-account] json:bool no-restart:bool q:bool quiet:bool
 [session unarchive] json:bool q:bool quiet:bool
@@ -87,7 +95,7 @@
 [watcher status] json:bool
 [watcher stop]
 [watcher test]
-[web] insecure-bind:bool listen:string push:bool push-test-every:duration push-vapid-subject:string read-only:bool token:string
+[web] insecure-bind:bool listen:string no-tui:bool push:bool push-test-every:duration push-vapid-subject:string read-only:bool token:string token-file:string
 [worktree cleanup] force:bool json:bool
 [worktree finish] force:bool into:string json:bool keep-branch:bool no-merge:bool
 [worktree info] json:bool
