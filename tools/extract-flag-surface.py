@@ -27,7 +27,7 @@ from pathlib import Path
 FLAG_SET = re.compile(r'flag\.NewFlagSet\(\s*"([^"]*)"')
 FLAG_DEF = re.compile(
     r'\b\w+\.(String|Bool|Int|Int64|Float64|Duration|Var)(?:Var)?\('
-    r'\s*(?:&\w+\s*,\s*)?"([\w\-.]+)"'
+    r'\s*(?:&[\w.]+\s*,\s*)?"([\w\-.]+)"'
 )
 CASE_LABELS = re.compile(r'^\s*case\s+((?:"[^"]*"\s*,?\s*)+):')
 TOOL_VALUES = re.compile(r'builtinToolValues\s*=\s*\[\]string\{([^}]*)\}', re.S)

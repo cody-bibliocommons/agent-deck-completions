@@ -1,7 +1,7 @@
 # bash completion for agent-deck — terminal session manager for AI coding agents
 #   https://github.com/asheshgoplani/agent-deck
 #
-# Generated against agent-deck v1.11.0 (commands and flags taken from the CLI's
+# Generated against agent-deck v1.16.4 (commands and flags taken from the CLI's
 # own flag sets in cmd/agent-deck/*.go).
 #
 # Install: see README.md — either
@@ -77,6 +77,13 @@ __agent_deck_complete_arguments_of() {
     watcher)                __agent_deck_watcher ;;
     openclaw|oc)            __agent_deck_openclaw ;;
     inbox)                  __agent_deck_inbox ;;
+    accounts)               __agent_deck_words '--json' ;;
+    agents)                 __agent_deck_words '--json --no-remote' ;;
+    agent)                  __agent_deck_agent ;;
+    doctor)                 __agent_deck_words '--json' ;;
+    telemetry)              __agent_deck_telemetry ;;
+    deepseek)               __agent_deck_deepseek ;;
+    remote-agent)           __agent_deck_words '' ;;
     telegram-doctor)        __agent_deck_words '--json --quiet' ;;
     update)                 __agent_deck_words '--check --version' ;;
     migrate-paths)          __agent_deck_words '--dry-run --force' ;;
@@ -90,14 +97,14 @@ __agent_deck_complete_arguments_of() {
 __agent_deck_add() {
   __agent_deck_offer_options "$__agent_deck_create_opts -Q --quick --attach
     --account --sandbox --sandbox-image --ssh --remote-path --wrapper --yolo
-    --gemini-yolo" && return
+    --gemini-yolo --create-dir" && return
   __agent_deck_dirs
 }
 
 __agent_deck_launch() {
   __agent_deck_offer_options "$__agent_deck_create_opts -m --message
     --message-file --assert-done --no-assert-done --no-wait --idle-timeout
-    --inherit-group --inherit-telegram-env --wrapper" && return
+    --inherit-group --inherit-telegram-env --wrapper --account" && return
   __agent_deck_dirs
 }
 
@@ -118,7 +125,7 @@ __agent_deck_session() {
 
   local opts
   case ${pos[1]-} in
-    start)       opts="$__agent_deck_common_opts -m --message --message-file --attach --yolo" ;;
+    start)       opts="$__agent_deck_common_opts -m --message --message-file --attach --yolo --no-wait" ;;
     remove)      opts="$__agent_deck_common_opts --force --all-errored --prune-worktree" ;;
     cleanup|prune)
                  opts="$__agent_deck_common_opts --days --dry-run -y --yes --force
@@ -180,7 +187,9 @@ __agent_deck_fleet() {
   case ${pos[1]-} in
     recover) __agent_deck_words "$__agent_deck_common_opts --yes --dry-run --group
                --limit --spacing --jitter --verify-poll --verify-timeout
-               --max-failures --max-dead-boots --auth-halt-after" ;;
+               --max-failures --max-dead-boots --auth-halt-after
+               --group-by-credential" ;;
+    status)  __agent_deck_words "$__agent_deck_common_opts --group-by-credential" ;;
     *)       __agent_deck_words "$__agent_deck_common_opts" ;;
   esac
 }
@@ -313,16 +322,19 @@ __agent_deck_worktree() {
 }
 
 __agent_deck_remote() {
-  __agent_deck_offer_subcommands 'add remove rm list ls sessions attach rename update' && return
+  __agent_deck_offer_subcommands 'add remove rm list ls sessions attach rename update drain' && return
 
   case ${pos[1]-} in
-    add) __agent_deck_offer_options '--agent-deck-path --profile' && return ;;
-    *)   __agent_deck_offer_options '--json' && return ;;
+    add)   __agent_deck_offer_options '--agent-deck-path --profile' && return ;;
+    drain) __agent_deck_offer_options '--into --json' && return ;;
+    *)     __agent_deck_offer_options '--json' && return ;;
   esac
 
   local argi=$(( npos - 1 ))
   case ${pos[1]-} in
     add) ;;
+    drain)
+      (( argi == 1 )) && __agent_deck_dyn remotes ;;
     attach|rename)
       (( argi == 1 )) && __agent_deck_dyn remotes
       (( argi == 2 )) && __agent_deck_dyn remote-sessions "${pos[2]-}" ;;
@@ -365,7 +377,7 @@ __agent_deck_profile() {
 }
 
 __agent_deck_web() {
-  __agent_deck_words '--listen --token --read-only --no-tui --push
+  __agent_deck_words '--listen --token --token-file --read-only --no-tui --push
     --push-test-every --push-vapid-subject --insecure-bind'
 }
 
@@ -399,9 +411,34 @@ __agent_deck_openclaw() {
 }
 
 __agent_deck_inbox() {
-  __agent_deck_offer_subcommands 'drain' && return
+  __agent_deck_offer_subcommands 'drain export writer-status' && return
   __agent_deck_offer_options '--json' && return
   (( npos == 2 )) && __agent_deck_dyn sessions
+}
+
+__agent_deck_agent() {
+  __agent_deck_offer_subcommands 'adopt show help' && return
+
+  local opts=$__agent_deck_common_opts
+  case ${pos[1]-} in
+    adopt) opts+=' --manager --write' ;;
+  esac
+  __agent_deck_offer_options "$opts" && return
+
+  local argi=$(( npos - 1 ))
+  case ${pos[1]-} in
+    adopt) (( argi == 1 )) && __agent_deck_dirs ;;
+  esac
+}
+
+__agent_deck_telemetry() {
+  __agent_deck_offer_subcommands 'status enable disable preview show-last reset-id help' && return
+  return 0
+}
+
+__agent_deck_deepseek() {
+  __agent_deck_offer_subcommands 'status profiles sessions help' && return
+  return 0
 }
 
 # Value completion for the option sitting in $prev. Returns 0 when it handled the
@@ -603,6 +640,7 @@ __agent_deck_opt_takes_value() {
     --heartbeat-rules-md|--instructions-md|--shared-instructions-md) return 0 ;;
     --policy-md|--shared-policy-md|--claude-md|--shared-claude-md) return 0 ;;
     --agent-deck-path|--port|--secret|--secret-file|--topic|--interval) return 0 ;;
+    --manager) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -610,7 +648,8 @@ __agent_deck_opt_takes_value() {
 __agent_deck_commands='add launch try list ls remove rm rename mv status session
   fleet mcp skill plugin group worktree wt web remote conductor openclaw oc costs
   inbox watcher telegram-doctor profile update feedback debug-dump migrate-paths
-  uninstall version help codex-hooks gemini-hooks hermes-hooks cursor-hooks hooks'
+  uninstall version help codex-hooks gemini-hooks hermes-hooks cursor-hooks hooks
+  accounts agent agents doctor telemetry deepseek remote-agent'
 
 __agent_deck_session_subcmds='start stop remove cleanup prune archive unarchive
   restart revive fork handoff attach focus show current set switch-account move mv
@@ -624,7 +663,7 @@ __agent_deck_session_fields='title path command tool wrapper channels plugins
 # --cmd, not a builtin tool) and `kiro-cli` (upstream's feat/kiro-cli-tool
 # branch, not yet on main). --cmd takes an arbitrary command, so neither can be
 # wrong; tools/check-coverage.py holds this list to the snapshot.
-__agent_deck_tools='claude codex gemini opencode copilot crush cursor hermes kiro-cli pi shell'
+__agent_deck_tools='claude codex deepseek gemini opencode copilot crush cursor hermes kiro-cli pi shell'
 
 __agent_deck_approval_choices='once always session'
 __agent_deck_worktree_locations='sibling subdirectory'

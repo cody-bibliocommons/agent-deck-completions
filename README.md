@@ -8,7 +8,7 @@ Tab completion for **zsh** and **bash** covering
 manager for AI coding agents.
 
 The option lists come from agent-deck's own `flag.NewFlagSet` definitions in
-`cmd/agent-deck/*.go` (v1.11.0), so they match what the binary parses rather
+`cmd/agent-deck/*.go` (v1.16.4), so they match what the binary parses rather
 than what its help text claims. [AGENTS.md](AGENTS.md) covers how to regenerate
 them after an upstream release.
 
@@ -46,7 +46,7 @@ have yet — which agent-deck rejects with `flag provided but not defined`. If y
 are pinned to an older release, check out the tag that matches it:
 
 ```bash
-git checkout agent-deck-v1.11.0   # git tag --list 'agent-deck-*' to see them
+git checkout agent-deck-v1.16.4   # git tag --list 'agent-deck-*' to see them
 ```
 
 The symlinks follow the checkout, so nothing needs reinstalling. `git checkout
