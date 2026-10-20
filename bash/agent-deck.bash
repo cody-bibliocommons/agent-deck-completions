@@ -1,7 +1,7 @@
 # bash completion for agent-deck — terminal session manager for AI coding agents
 #   https://github.com/asheshgoplani/agent-deck
 #
-# Generated against agent-deck v1.16.4 (commands and flags taken from the CLI's
+# Generated against agent-deck v1.16.30 (commands and flags taken from the CLI's
 # own flag sets in cmd/agent-deck/*.go).
 #
 # Install: see README.md — either
@@ -58,7 +58,7 @@ __agent_deck_complete_arguments_of() {
     add)                    __agent_deck_add ;;
     launch)                 __agent_deck_launch ;;
     try)                    __agent_deck_try ;;
-    list|ls)                __agent_deck_words '--json --all' ;;
+    list|ls)                __agent_deck_words '--json --all --include-superseded' ;;
     remove|rm|rename|mv)    __agent_deck_session_by_name ;;
     status)                 __agent_deck_words "$__agent_deck_common_opts -v --verbose
                             --stale --threshold" ;;
@@ -77,7 +77,7 @@ __agent_deck_complete_arguments_of() {
     watcher)                __agent_deck_watcher ;;
     openclaw|oc)            __agent_deck_openclaw ;;
     inbox)                  __agent_deck_inbox ;;
-    accounts)               __agent_deck_words '--json' ;;
+    accounts)               __agent_deck_words '--json --harness' ;;
     agents)                 __agent_deck_words '--json --no-remote' ;;
     agent)                  __agent_deck_agent ;;
     doctor)                 __agent_deck_words '--json' ;;
@@ -85,26 +85,44 @@ __agent_deck_complete_arguments_of() {
     deepseek)               __agent_deck_deepseek ;;
     remote-agent)           __agent_deck_words '' ;;
     telegram-doctor)        __agent_deck_words '--json --quiet' ;;
-    update)                 __agent_deck_words '--check --version' ;;
+    update)                 __agent_deck_words '--check --check-now --dry-run
+                              --ensure-timer --install-timer --json --timer-status
+                              --trigger --unattended --uninstall-timer --version' ;;
     migrate-paths)          __agent_deck_words '--dry-run --force' ;;
     uninstall)              __agent_deck_words '--dry-run --keep-data --keep-tmux-config -y' ;;
     help)                   __agent_deck_offer_subcommands "$__agent_deck_commands" ;;
     hooks|codex-hooks|gemini-hooks|hermes-hooks|cursor-hooks)
                             __agent_deck_offer_subcommands 'install uninstall status' ;;
+    file)                   __agent_deck_file ;;
+    browser)                __agent_deck_browser ;;
+    daemon)                 __agent_deck_words '--json' ;;
+    harness)                __agent_deck_words '--json' ;;
+    health)                 __agent_deck_words '--json --since' ;;
+    limits)                 __agent_deck_words '--json' ;;
+    msg)                    __agent_deck_msg ;;
+    open)                   __agent_deck_open ;;
+    system)                 __agent_deck_system ;;
+    triggers)               __agent_deck_triggers ;;
+    usage)                  __agent_deck_usage ;;
+    config)                 __agent_deck_config ;;
+    agent-deck)             __agent_deck_events ;;
   esac
 }
 
 __agent_deck_add() {
   __agent_deck_offer_options "$__agent_deck_create_opts -Q --quick --attach
-    --account --sandbox --sandbox-image --ssh --remote-path --wrapper --yolo
-    --gemini-yolo --create-dir" && return
+    --account --capabilities --create-dir --effort --no-identity --sandbox
+    --sandbox-image --ssh --remote-path --startup-query --wrapper --yolo
+    --gemini-yolo" && return
   __agent_deck_dirs
 }
 
 __agent_deck_launch() {
   __agent_deck_offer_options "$__agent_deck_create_opts -m --message
     --message-file --assert-done --no-assert-done --no-wait --idle-timeout
-    --inherit-group --inherit-telegram-env --wrapper --account" && return
+    --inherit-group --inherit-telegram-env --wrapper --account --capabilities
+    --create-dir --effort --ignore-budget --no-identity --sandbox
+    --sandbox-image --startup-query --yolo" && return
   __agent_deck_dirs
 }
 
@@ -123,34 +141,100 @@ __agent_deck_session_by_name() {
 __agent_deck_session() {
   __agent_deck_offer_subcommands "$__agent_deck_session_subcmds" && return
 
+  # Commands with nested subcommands get their own dispatch.
+  [[ ${pos[1]-} == ownership ]] && { __agent_deck_session_ownership; return; }
+  [[ ${pos[1]-} == queue     ]] && { __agent_deck_session_queue; return; }
+  [[ ${pos[1]-} == window    ]] && { __agent_deck_session_window; return; }
+
   local opts
   case ${pos[1]-} in
-    start)       opts="$__agent_deck_common_opts -m --message --message-file --attach --yolo --no-wait" ;;
-    remove)      opts="$__agent_deck_common_opts --force --all-errored --prune-worktree" ;;
+    start)
+      opts="$__agent_deck_common_opts -m --message --message-file --attach --yolo
+             --no-wait --ignore-budget" ;;
+    remove)
+      opts="$__agent_deck_common_opts --force --all-errored --prune-worktree" ;;
     cleanup|prune)
-                 opts="$__agent_deck_common_opts --days --dry-run -y --yes --force
-                       --include-archived --prune-worktree" ;;
-    restart)     opts="$__agent_deck_common_opts --all --env --force" ;;
-    revive)      opts="$__agent_deck_common_opts --all --name" ;;
-    fork)        opts="$__agent_deck_common_opts -t --title -g --group -w --worktree
-                       -b --new-branch --sandbox --sandbox-image --with-state
-                       --with-state-and-gitignored" ;;
-    handoff)     opts='--json --max-chars --out' ;;
-    focus)       opts='--attach' ;;
-    move|mv)     opts="$__agent_deck_common_opts --group --to-profile --copy --force --no-restart" ;;
-    send)        opts="$__agent_deck_common_opts --message-file --draft --no-wait --wait
-                       --timeout --defer-if-busy --defer-timeout --stream --stream-idle
-                       --stream-char-budget --stream-tool-budget" ;;
-    send-keys)   opts="$__agent_deck_common_opts --text --named-key --enter --stream" ;;
-    approve)     opts="$__agent_deck_common_opts --choice --timeout" ;;
-    output)      opts="$__agent_deck_common_opts --copy --pane" ;;
-    children)    opts="$__agent_deck_common_opts --follow --until-done --interval --heartbeat" ;;
-    search)      opts="$__agent_deck_common_opts --days --limit --tier" ;;
-    set-parent)  opts="$__agent_deck_common_opts --inherit-group" ;;
-    update)      opts="$__agent_deck_common_opts --parent --no-parent" ;;
-    switch-account) opts="$__agent_deck_common_opts --no-restart" ;;
-    attach)      opts='' ;;
-    *)           opts="$__agent_deck_common_opts" ;;
+      opts="$__agent_deck_common_opts --days --dry-run -y --yes --force
+             --include-archived --prune-worktree" ;;
+    restart)
+      opts="$__agent_deck_common_opts --all --env --force --if-idle" ;;
+    revive)
+      opts="$__agent_deck_common_opts --all --name --delay" ;;
+    fork)
+      opts="$__agent_deck_common_opts -t --title -g --group -w --worktree
+             -b --new-branch --sandbox --sandbox-image --with-state
+             --with-state-and-gitignored" ;;
+    handoff)
+      opts='--json --max-chars --out' ;;
+    focus)
+      opts="$__agent_deck_common_opts --attach --remote" ;;
+    move|mv)
+      opts="$__agent_deck_common_opts --group --to-profile --copy --force --no-restart" ;;
+    send)
+      opts="$__agent_deck_common_opts --message-file --draft --no-wait --wait
+             --timeout --defer-if-busy --defer-timeout --stream --stream-idle
+             --stream-char-budget --stream-tool-budget --codex-composer-fallback
+             --ignore-budget --image --no-tag --queue --queue-worker
+             --require-input-prompt --source" ;;
+    send-keys)
+      opts="$__agent_deck_common_opts --text --named-key --enter --stream --primary" ;;
+    approve)
+      opts="$__agent_deck_common_opts --choice --timeout" ;;
+    output)
+      opts="$__agent_deck_common_opts --copy --pane --if-version --max-tokens --primary" ;;
+    children)
+      opts="$__agent_deck_common_opts --follow --until-done --interval --heartbeat" ;;
+    search)
+      opts="$__agent_deck_common_opts --days --limit --tier" ;;
+    set-parent)
+      opts="$__agent_deck_common_opts --inherit-group" ;;
+    update)
+      opts="$__agent_deck_common_opts --parent --no-parent" ;;
+    switch-account)
+      opts="$__agent_deck_common_opts --no-restart --archive-destination
+             --no-settle --settle-strict" ;;
+    archive)
+      opts="$__agent_deck_common_opts --expected-content-version --expected-parent" ;;
+    attach)
+      opts='' ;;
+    set)
+      opts="$__agent_deck_common_opts --intended --intended-for" ;;
+    annotate)
+      opts="$__agent_deck_common_opts --note-stdin --self" ;;
+    command)
+      opts="$__agent_deck_common_opts --background --dry-run --result-file
+             --timeout --wait-idle" ;;
+    commands)
+      opts="$__agent_deck_common_opts" ;;
+    context)
+      opts="$__agent_deck_common_opts --all --capabilities --glossary --item
+             --strict --tab --timeout --tolerance-pct --tolerance-tokens
+             --verbose --verify --verify-ready-timeout --verify-timeout --yes" ;;
+    image-upload)
+      opts="$__agent_deck_common_opts --name" ;;
+    metrics)
+      opts="$__agent_deck_common_opts --all --since" ;;
+    primer)
+      opts="$__agent_deck_common_opts" ;;
+    recent)
+      opts="$__agent_deck_common_opts --limit" ;;
+    send-status)
+      opts="$__agent_deck_common_opts" ;;
+    send-worker)
+      opts="--target --watch" ;;
+    switch)
+      opts="$__agent_deck_common_opts --archive-destination --confirm-context-loss
+             --max-bytes --no-settle --no-start --settle-strict --to-account
+             --to-harness" ;;
+    switch-preview)
+      opts="$__agent_deck_common_opts --max-chars --to-account --to-harness" ;;
+    switch-settle)
+      opts="$__agent_deck_common_opts --account --kick --no-kick --old-pids
+             --restart --timeout" ;;
+    viewers)
+      opts="$__agent_deck_common_opts" ;;
+    *)
+      opts="$__agent_deck_common_opts" ;;
   esac
   __agent_deck_offer_options "$opts" && return
 
@@ -162,7 +246,8 @@ __agent_deck_session() {
 __agent_deck_session_arguments() {
   local argi=$(( npos - 1 ))
   case ${pos[1]-} in
-    cleanup|prune|current) ;;
+    cleanup|prune|current|commands|recent|metrics|send-worker|send-status| \
+    switch-settle|viewers|primer|context) ;;
     set)
       (( argi == 1 )) && __agent_deck_dyn sessions
       (( argi == 2 )) && __agent_deck_words "$__agent_deck_session_fields" ;;
@@ -180,6 +265,33 @@ __agent_deck_session_arguments() {
     *)
       (( argi == 1 )) && __agent_deck_dyn sessions ;;
   esac
+}
+
+# Nested dispatch for `session ownership <sub>`.
+__agent_deck_session_ownership() {
+  local argi=$(( npos - 2 ))
+  (( argi == 0 )) && [[ $cur != -* ]] && {
+    __agent_deck_words 'abandon inspect reconcile'
+    return
+  }
+  local opts="$__agent_deck_common_opts"
+  [[ ${pos[2]-} == abandon || ${pos[2]-} == reconcile ]] && opts+=' --yes'
+  __agent_deck_offer_options "$opts" && return
+  (( npos == 2 )) && __agent_deck_dyn sessions
+}
+
+# Nested dispatch for `session queue [list]`.
+__agent_deck_session_queue() {
+  local argi=$(( npos - 2 ))
+  (( argi == 0 )) && [[ $cur != -* ]] && { __agent_deck_words 'list'; return; }
+  __agent_deck_words '--json'
+}
+
+# Nested dispatch for `session window close`.
+__agent_deck_session_window() {
+  local argi=$(( npos - 2 ))
+  (( argi == 0 )) && [[ $cur != -* ]] && { __agent_deck_words 'close'; return; }
+  __agent_deck_words '--force --json --yes'
 }
 
 __agent_deck_fleet() {
@@ -303,21 +415,21 @@ __agent_deck_group() {
 }
 
 __agent_deck_worktree() {
-  __agent_deck_offer_subcommands 'list ls info finish cleanup trust-scripts help' && return
+  __agent_deck_offer_subcommands 'list ls info finish cleanup trust-hooks help' && return
 
-  # `trust-scripts` is the one subcommand with no --json: it parses only --revoke.
+  # `trust-hooks` is the one subcommand with no --json: it parses --hook, --revoke, --yes.
   local opts='--json'
   case ${pos[1]-} in
-    finish)        opts+=' --into --no-merge --keep-branch --force --abort' ;;
-    cleanup)       opts+=' --force' ;;
-    trust-scripts) opts='--revoke' ;;
+    finish)      opts+=' --into --no-merge --keep-branch --force --abort' ;;
+    cleanup)     opts+=' --force' ;;
+    trust-hooks) opts='--hook --revoke --yes' ;;
   esac
   __agent_deck_offer_options "$opts" && return
 
   local argi=$(( npos - 1 ))
   case ${pos[1]-} in
     info|finish)   (( argi == 1 )) && __agent_deck_dyn sessions ;;
-    trust-scripts) (( argi == 1 )) && __agent_deck_dirs ;;
+    trust-hooks)   (( argi == 1 )) && __agent_deck_dirs ;;
   esac
 }
 
@@ -325,9 +437,20 @@ __agent_deck_remote() {
   __agent_deck_offer_subcommands 'add remove rm list ls sessions attach rename update drain' && return
 
   case ${pos[1]-} in
-    add)   __agent_deck_offer_options '--agent-deck-path --profile' && return ;;
-    drain) __agent_deck_offer_options '--into --json' && return ;;
-    *)     __agent_deck_offer_options '--json' && return ;;
+    add)
+      __agent_deck_offer_options '--agent-deck-path --profile' && return ;;
+    drain)
+      __agent_deck_offer_options '--into --json' && return ;;
+    list|ls)
+      __agent_deck_offer_options '--json --check --retry' && return ;;
+    sessions)
+      __agent_deck_offer_options '--json --json-envelope --with-errors' && return ;;
+    update)
+      __agent_deck_offer_options '--all --dry-run --force --from-build --host
+        --install-timer --json --outcome --reason --remote --remotes
+        --summary --target' && return ;;
+    *)
+      __agent_deck_offer_options '--json' && return ;;
   esac
 
   local argi=$(( npos - 1 ))
@@ -344,19 +467,33 @@ __agent_deck_remote() {
 }
 
 __agent_deck_conductor() {
-  __agent_deck_offer_subcommands 'setup teardown status list move migrate-dir help' && return
+  __agent_deck_offer_subcommands 'setup teardown status list move migrate-dir
+    heartbeat-tick notify outbox tier-filter help' && return
 
   local opts='--json'
   case ${pos[1]-} in
-    setup)       opts+=' --agent --description --heartbeat --no-heartbeat
-                        --heartbeat-idle-minutes --heartbeat-rules-md --instructions-md
-                        --shared-instructions-md --policy-md --shared-policy-md
-                        --claude-md --shared-claude-md --no-clear-on-compact
-                        --env --env-file' ;;
-    teardown)    opts+=' --all --remove' ;;
-    list)        opts+=' --profile' ;;
-    move)        opts="$__agent_deck_common_opts --to-profile --force" ;;
-    migrate-dir) opts+=' --apply --from --force' ;;
+    setup)
+      opts+=' --agent --description --heartbeat --no-heartbeat
+              --heartbeat-idle-minutes --heartbeat-rules-md --instructions-md
+              --shared-instructions-md --policy-md --shared-policy-md
+              --claude-md --shared-claude-md --no-clear-on-compact
+              --env --env-file' ;;
+    teardown)
+      opts+=' --all --remove' ;;
+    list)
+      opts+=' --profile' ;;
+    move)
+      opts="$__agent_deck_common_opts --to-profile --force" ;;
+    migrate-dir)
+      opts+=' --apply --from --force' ;;
+    heartbeat-tick)
+      opts='--commit-message --rules' ;;
+    notify)
+      opts='--conductor --json --message-file --tier' ;;
+    outbox)
+      opts='--ack --all --conductor --json' ;;
+    tier-filter)
+      opts='--ack --conductor --json --reply-id' ;;
   esac
   __agent_deck_offer_options "$opts" && return
 
@@ -378,26 +515,29 @@ __agent_deck_profile() {
 
 __agent_deck_web() {
   __agent_deck_words '--listen --token --token-file --read-only --no-tui --push
-    --push-test-every --push-vapid-subject --insecure-bind'
+    --push-test-every --push-vapid-subject --insecure-bind --allowed-host'
 }
 
 __agent_deck_costs() {
   __agent_deck_offer_subcommands 'sync summary recompute' && return
   case ${pos[1]-} in
     summary) __agent_deck_words '--json' ;;
+    '')      __agent_deck_words '--days --json --limit --period' ;;
     *)       __agent_deck_words '-n --dry-run' ;;
   esac
 }
 
 __agent_deck_watcher() {
   __agent_deck_offer_subcommands 'create import start stop list status test routes
-    install-skill help' && return
+    reload install-skill help' && return
   case ${pos[1]-} in
     create)
       __agent_deck_offer_options '--name --port --secret --secret-file --topic' && return
       (( npos == 2 )) && __agent_deck_words "$__agent_deck_watcher_kinds" ;;
     list|status|routes)
       __agent_deck_words '--json' ;;
+    reload)
+      __agent_deck_words '--json --timeout' ;;
   esac
 }
 
@@ -411,9 +551,38 @@ __agent_deck_openclaw() {
 }
 
 __agent_deck_inbox() {
-  __agent_deck_offer_subcommands 'drain export writer-status' && return
-  __agent_deck_offer_options '--json' && return
-  (( npos == 2 )) && __agent_deck_dyn sessions
+  __agent_deck_offer_subcommands 'drain export writer-status cursor dead-letter
+    peek stats' && return
+
+  case ${pos[1]-} in
+    drain)
+      __agent_deck_offer_options '--json --strict' && return
+      (( npos == 2 )) && __agent_deck_dyn sessions ;;
+    export)
+      __agent_deck_words '--after --json --profile --with-writer' ;;
+    cursor)
+      __agent_deck_words '--json' ;;
+    dead-letter)
+      local argi=$(( npos - 2 ))
+      (( argi == 0 )) && [[ $cur != -* ]] && {
+        __agent_deck_words 'purge retry'
+        return
+      }
+      case ${pos[2]-} in
+        purge) __agent_deck_words '--json --older-than --yes' ;;
+        retry) __agent_deck_words '--json' ;;
+        *)     __agent_deck_words '--json --store' ;;
+      esac ;;
+    peek)
+      __agent_deck_words '--json' ;;
+    stats)
+      __agent_deck_words '--all --json --reset' ;;
+    writer-status)
+      __agent_deck_words '--json' ;;
+    *)
+      __agent_deck_offer_options '--json' && return
+      (( npos == 2 )) && __agent_deck_dyn sessions ;;
+  esac
 }
 
 __agent_deck_agent() {
@@ -439,6 +608,79 @@ __agent_deck_telemetry() {
 __agent_deck_deepseek() {
   __agent_deck_offer_subcommands 'status profiles sessions help' && return
   return 0
+}
+
+# ---------------------------------------------------------------------------
+# New commands added in v1.16.30
+# ---------------------------------------------------------------------------
+
+__agent_deck_file() {
+  __agent_deck_offer_subcommands 'bundle read roots' && return
+  case ${pos[1]-} in
+    bundle) __agent_deck_words '--session' ;;
+    read|roots) __agent_deck_words '--json' ;;
+  esac
+}
+
+__agent_deck_browser() {
+  __agent_deck_words '--browser-profile --full --json --new-tab --out --outline
+    --ref --selector --session --submit --tab --text --timeout'
+}
+
+__agent_deck_msg() {
+  __agent_deck_offer_subcommands 'ack export stats' && return
+  case ${pos[1]-} in
+    ack)    __agent_deck_words '--all --for --json' ;;
+    export) __agent_deck_words '--for --json --limit' ;;
+    stats)  __agent_deck_words '--json --parent --since' ;;
+  esac
+}
+
+__agent_deck_open() {
+  __agent_deck_words '--browser-profile --session --wait'
+}
+
+__agent_deck_system() {
+  __agent_deck_offer_subcommands 'stats' && return
+  __agent_deck_words '--json'
+}
+
+__agent_deck_triggers() {
+  __agent_deck_offer_subcommands 'fires list run scan' && return
+  case ${pos[1]-} in
+    fires)  __agent_deck_words '--json --limit' ;;
+    list)   __agent_deck_words '--all --health --host --json --kind --session' ;;
+    run|scan) __agent_deck_words '--json' ;;
+    *)      __agent_deck_words '--for --json' ;;
+  esac
+}
+
+__agent_deck_usage() {
+  __agent_deck_offer_subcommands 'statusline' && return
+  case ${pos[1]-} in
+    statusline) __agent_deck_words '--json --session' ;;
+    *)          __agent_deck_words '--json --refresh' ;;
+  esac
+}
+
+__agent_deck_config() {
+  __agent_deck_offer_subcommands 'show' && return
+  __agent_deck_words '--effective --json --yes'
+}
+
+# `agent-deck events` — exposed as top-level command `agent-deck` in main.go's switch.
+__agent_deck_events() {
+  __agent_deck_offer_subcommands 'events' && return
+  local argi=$(( npos - 2 ))
+  (( argi == 0 )) && [[ $cur != -* ]] && {
+    __agent_deck_words 'follow publish stats'
+    return
+  }
+  case ${pos[2]-} in
+    follow)  __agent_deck_words '--bus --json --jsonl --kind --profile --read-only --session' ;;
+    publish) __agent_deck_words '--data --data-file --from-remote --json --kind --profile --session' ;;
+    stats)   __agent_deck_words '--bus --json --read-only' ;;
+  esac
 }
 
 # Value completion for the option sitting in $prev. Returns 0 when it handled the
@@ -641,6 +883,16 @@ __agent_deck_opt_takes_value() {
     --policy-md|--shared-policy-md|--claude-md|--shared-claude-md) return 0 ;;
     --agent-deck-path|--port|--secret|--secret-file|--topic|--interval) return 0 ;;
     --manager) return 0 ;;
+    # v1.16.30 additions
+    --browser-profile|--bus|--commit-message|--conductor|--data|--data-file) return 0 ;;
+    --effort|--expected-content-version|--expected-parent|--for|--from-build) return 0 ;;
+    --harness|--health|--hook|--host|--if-version|--image|--intended) return 0 ;;
+    --intended-for|--item|--kick|--kind|--max-bytes|--max-tokens|--old-pids) return 0 ;;
+    --older-than|--outcome|--period|--reason|--ref|--remote|--remotes) return 0 ;;
+    --reply-id|--result-file|--rules|--selector|--session|--since) return 0 ;;
+    --startup-query|--store|--summary|--tab|--target|--to-account|--to-harness) return 0 ;;
+    --tolerance-pct|--tolerance-tokens|--trigger|--verify-ready-timeout) return 0 ;;
+    --wait-idle|--watch|--after) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -649,12 +901,17 @@ __agent_deck_commands='add launch try list ls remove rm rename mv status session
   fleet mcp skill plugin group worktree wt web remote conductor openclaw oc costs
   inbox watcher telegram-doctor profile update feedback debug-dump migrate-paths
   uninstall version help codex-hooks gemini-hooks hermes-hooks cursor-hooks hooks
-  accounts agent agents doctor telemetry deepseek remote-agent'
+  accounts agent agents doctor telemetry deepseek remote-agent
+  file browser daemon harness health limits msg open system triggers usage config
+  agent-deck'
 
 __agent_deck_session_subcmds='start stop remove cleanup prune archive unarchive
   restart revive fork handoff attach focus show current set switch-account move mv
   send send-keys approve output children search set-parent unset-parent update
-  set-transition-notify set-title-lock help'
+  set-transition-notify set-title-lock
+  annotate command commands context image-upload metrics ownership primer queue
+  recent send-status send-worker switch switch-preview switch-settle viewers window
+  help'
 
 __agent_deck_session_fields='title path command tool wrapper channels plugins
   extra-args model color claude-session-id gemini-session-id account idle-timeout'
@@ -663,7 +920,7 @@ __agent_deck_session_fields='title path command tool wrapper channels plugins
 # --cmd, not a builtin tool) and `kiro-cli` (upstream's feat/kiro-cli-tool
 # branch, not yet on main). --cmd takes an arbitrary command, so neither can be
 # wrong; tools/check-coverage.py holds this list to the snapshot.
-__agent_deck_tools='claude codex deepseek gemini opencode copilot crush cursor hermes kiro-cli pi shell'
+__agent_deck_tools='claude codex deepseek gemini muse omp opencode opencode2 copilot crush cursor hermes kiro-cli pi shell'
 
 __agent_deck_approval_choices='once always session'
 __agent_deck_worktree_locations='sibling subdirectory'
