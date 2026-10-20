@@ -3,7 +3,7 @@
 # zsh completion for agent-deck — terminal session manager for AI coding agents
 #   https://github.com/asheshgoplani/agent-deck
 #
-# Generated against agent-deck v1.16.4 (commands and flags taken from the
+# Generated against agent-deck v1.16.30 (commands and flags taken from the
 # CLI's own flag sets in cmd/agent-deck/*.go).
 #
 # Install: keep this file as `_agent-deck` in a directory on $fpath, then
@@ -38,7 +38,7 @@ _agent-deck() {
     add)              __agent_deck_add && ret=0 ;;
     launch)           __agent_deck_launch && ret=0 ;;
     try)              __agent_deck_try && ret=0 ;;
-    list|ls)          _arguments -s '--json[output as JSON]' '--all[list sessions from all profiles]' && ret=0 ;;
+    list|ls)          _arguments -s '--json[output as JSON]' '--all[list sessions from all profiles]' '--include-superseded[include superseded sessions]' && ret=0 ;;
     remove|rm)        _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0 ;;
     rename|mv)        _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' '2:new title:' && ret=0 ;;
     status)
@@ -62,12 +62,40 @@ _agent-deck() {
     watcher)          __agent_deck_watcher && ret=0 ;;
     openclaw|oc)      __agent_deck_openclaw && ret=0 ;;
     inbox)
-      _arguments -C '1:subcommand:((drain\:"drain and print pending events" export\:"export records without consuming" writer-status\:"check if a writer is recording"))' '*:: :->iargs' && ret=0
+      _arguments -C '1:subcommand:((drain\:"drain and print pending events" export\:"export records without consuming" writer-status\:"check if a writer is recording" cursor\:"show the inbox cursor" dead-letter\:"manage dead-letter messages" peek\:"peek at the next message" stats\:"show inbox stats"))' '*:: :->iargs' && ret=0
       [[ $state == iargs ]] && {
         case ${words[1]} in
-          drain)         _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 ;;
-          export|writer-status)
-                         _arguments -s '--json[output as JSON]' && ret=0 ;;
+          drain)
+            _arguments -s '--json[output as JSON]' '--strict[fail on any error]' \
+              '1:session:__agent_deck_sessions' && ret=0 ;;
+          export)
+            _arguments -s '--json[output as JSON]' \
+              '--after[only events after this cursor]:cursor:' \
+              '--profile[profile to export from]:profile:__agent_deck_profiles' \
+              '--with-writer[include writer metadata]' && ret=0 ;;
+          cursor)
+            _arguments -s '--json[output as JSON]' && ret=0 ;;
+          dead-letter)
+            _arguments -C \
+              '1:subcommand:((purge\:"purge dead-letter messages" retry\:"retry dead-letter messages"))' \
+              '--json[output as JSON]' '--store[store name]:store:' \
+              '*:: :->dlargs' && ret=0
+            [[ $state == dlargs ]] && {
+              case ${words[1]} in
+                purge)
+                  _arguments -s '--json[output as JSON]' \
+                    '--older-than[purge messages older than]:duration:' \
+                    '--yes[skip confirmation]' && ret=0 ;;
+                retry)
+                  _arguments -s '--json[output as JSON]' && ret=0 ;;
+              esac
+            } ;;
+          peek)
+            _arguments -s '--json[output as JSON]' && ret=0 ;;
+          stats)
+            _arguments -s '--json[output as JSON]' '--all[show all stats]' '--reset[reset stats]' && ret=0 ;;
+          writer-status)
+            _arguments -s '--json[output as JSON]' && ret=0 ;;
           *) _arguments -s '--json[output as JSON]' '1:session:__agent_deck_sessions' && ret=0 ;;
         esac
       }
@@ -76,7 +104,7 @@ _agent-deck() {
       __agent_deck_hooks && ret=0 ;;
     telegram-doctor)  _arguments -s '--json[emit machine-readable JSON]' '--quiet[only print drift]' && ret=0 ;;
     accounts)
-      _arguments -s '--json[output as JSON]' && ret=0 ;;
+      _arguments -s '--json[output as JSON]' '--harness[harness name]:harness:' && ret=0 ;;
     agents)
       _arguments -s '--json[output as JSON]' '--no-remote[skip remote machines]' && ret=0 ;;
     agent)            __agent_deck_agent && ret=0 ;;
@@ -87,7 +115,17 @@ _agent-deck() {
     remote-agent)
       _arguments -s '-h[show help]' '--help[show help]' && ret=0 ;;
     update)
-      _arguments -s '--check[only check, do not install]' \
+      _arguments -s \
+        '--check[only check, do not install]' \
+        '--check-now[force an immediate update check]' \
+        '--dry-run[show what would be done]' \
+        '--ensure-timer[create the update timer if absent]' \
+        '--install-timer[install the systemd/launchd update timer]' \
+        '--json[output as JSON]' \
+        '--timer-status[show timer status and exit]' \
+        '--trigger[trigger source for unattended update]:trigger:' \
+        '--unattended[run without prompts]' \
+        '--uninstall-timer[remove the update timer]' \
         '--version[install a specific released version]:version:' && ret=0
       ;;
     migrate-paths)
@@ -102,6 +140,26 @@ _agent-deck() {
       ;;
     help)
       _arguments '1:command:__agent_deck_commands' && ret=0 ;;
+    file)             __agent_deck_file && ret=0 ;;
+    browser)          __agent_deck_browser && ret=0 ;;
+    daemon)
+      _arguments -s '--json[output as JSON]' && ret=0 ;;
+    harness)
+      _arguments -s '--json[output as JSON]' && ret=0 ;;
+    health)
+      _arguments -s '--json[output as JSON]' '--since[show since this duration]:duration:' && ret=0 ;;
+    limits)
+      _arguments -s '--json[output as JSON]' && ret=0 ;;
+    msg)              __agent_deck_msg && ret=0 ;;
+    open)             __agent_deck_open && ret=0 ;;
+    system)
+      _arguments -C \
+        '1:subcommand:((stats\:"show system stats"))' '*:: :->sargs' && ret=0
+      [[ $state == sargs ]] && { _arguments -s '--json[output as JSON]' && ret=0; } ;;
+    triggers)         __agent_deck_triggers && ret=0 ;;
+    usage)            __agent_deck_usage && ret=0 ;;
+    config)           __agent_deck_config && ret=0 ;;
+    agent-deck)       __agent_deck_events && ret=0 ;;
   esac
 
   return ret
@@ -192,6 +250,19 @@ __agent_deck_commands() {
     'telemetry:manage opt-in anonymous usage telemetry'
     'deepseek:inspect the DeepSeek Harness integration'
     'remote-agent:serve a persistent JSON-line channel for a local TUI'
+    'file:manage session file bundles'
+    'browser:open a URL in an agent browser session'
+    'daemon:query the agent-deck daemon'
+    'harness:query the active harness'
+    'health:show service health'
+    'limits:show rate-limit state'
+    'msg:manage inter-session messages'
+    'open:open a session in the TUI'
+    'system:query system information'
+    'triggers:manage session triggers'
+    'usage:show usage and token statistics'
+    'config:show configuration'
+    'agent-deck:access agent-deck event bus'
   )
   _describe -t commands 'agent-deck command' cmds
 }
@@ -291,7 +362,10 @@ __agent_deck_tools() {
     'codex:OpenAI Codex CLI'
     'deepseek:DeepSeek Harness (dsh)'
     'gemini:Gemini CLI'
+    'muse:Muse'
+    'omp:OMP'
     'opencode:OpenCode'
+    'opencode2:OpenCode2'
     'copilot:GitHub Copilot CLI'
     'crush:Crush'
     'cursor:Cursor Agent CLI'
@@ -374,14 +448,18 @@ __agent_deck_add() {
     '(-Q --quick)'{-Q,--quick}'[create a quick session with a generated handle]' \
     '--attach[start and attach to the session immediately]' \
     '--account[named account slot]:account:' \
+    '--capabilities[include capabilities context in the startup prompt]' \
+    '--create-dir[create the project directory if it does not exist]' \
+    '--effort[effort level for this session]:effort:' \
+    '--no-identity[skip identity injection]' \
     '--sandbox[run the session in a Docker sandbox]' \
     '--sandbox-image[Docker image for the sandbox]:image:' \
     '--ssh[SSH destination]:destination:_ssh_hosts' \
     '--remote-path[remote working directory (with --ssh)]:path:_files -/' \
+    '--startup-query[initial query to send on startup]:query:' \
     '--wrapper[wrapper command, {command} expands to the tool command]:wrapper:' \
     '--yolo[enable YOLO mode for Gemini or Codex sessions]' \
     '--gemini-yolo[alias for --yolo]' \
-    '--create-dir[create the project directory if it does not exist]' \
     '::project directory:_files -/'
 }
 
@@ -397,6 +475,15 @@ __agent_deck_launch() {
     '--inherit-telegram-env[keep TELEGRAM_* env vars in the child]' \
     '--wrapper[wrapper command, {command} expands to the tool command]:wrapper:' \
     '--account[named account slot]:account:' \
+    '--capabilities[include capabilities context in the startup prompt]' \
+    '--create-dir[create the project directory if it does not exist]' \
+    '--effort[effort level for this session]:effort:' \
+    '--ignore-budget[bypass the session budget limit]' \
+    '--no-identity[skip identity injection]' \
+    '--sandbox[run the session in a Docker sandbox]' \
+    '--sandbox-image[Docker image for the sandbox]:image:' \
+    '--startup-query[initial query to send on startup]:query:' \
+    '--yolo[enable YOLO mode]' \
     '::project directory:_files -/'
 }
 
@@ -445,6 +532,23 @@ __agent_deck_session() {
     'update:alias for set-parent/unset-parent'
     'set-transition-notify:enable/disable transition notifications'
     'set-title-lock:lock/unlock the title from Claude session-name sync'
+    'annotate:add an annotation to a session'
+    'command:run a command in a session'\''s context'
+    'commands:list commands run in a session'
+    'context:inspect or inject session context'
+    'image-upload:upload an image to the session'
+    'metrics:show session metrics'
+    'ownership:manage session ownership'
+    'primer:show the session primer'
+    'queue:manage the session send queue'
+    'recent:list recently active sessions'
+    'send-status:send a status update'
+    'send-worker:send a worker assignment'
+    'switch:switch the session to a different harness/account'
+    'switch-preview:preview a harness/account switch'
+    'switch-settle:settle a pending switch'
+    'viewers:list session viewers'
+    'window:manage TUI windows'
     'help:show session help'
   )
 
@@ -463,9 +567,10 @@ __agent_deck_session() {
             '--attach[attach to the session after starting]' \
             '--yolo[enable YOLO mode for Gemini or Codex]' \
             '--no-wait[do not wait for the agent to be ready before sending]' \
+            '--ignore-budget[bypass the session budget limit]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
-        stop|archive|unarchive|unset-parent|show)
+        stop|unarchive|unset-parent|show)
           _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
           ;;
         current)
@@ -475,7 +580,10 @@ __agent_deck_session() {
           _arguments '1:session:__agent_deck_sessions' && ret=0
           ;;
         focus)
-          _arguments '--attach[attach instead of only selecting]' \
+          _arguments -s $__agent_deck_common_opts \
+            '--attach[attach instead of only selecting]' \
+            '--json[output as JSON]' \
+            '--remote[remote name to focus in]:remote:' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         remove)
@@ -499,11 +607,13 @@ __agent_deck_session() {
             '--all[restart every active session]' \
             '*--env[set an env var for the restarted session]:KEY=VALUE:' \
             '--force[restart even when the session looks busy]' \
+            '--if-idle[only restart if session is idle]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         revive)
           _arguments -s $__agent_deck_common_opts \
             '--all[revive every errored session]' \
+            '--delay[delay before reviving]:duration:' \
             '--name[revive by session name]:name:__agent_deck_sessions' && ret=0
           ;;
         fork)
@@ -526,6 +636,8 @@ __agent_deck_session() {
           ;;
         set)
           _arguments -s $__agent_deck_common_opts \
+            '--intended[intended purpose]:purpose:' \
+            '--intended-for[intended-for duration]:duration:' \
             '1:session:__agent_deck_sessions' \
             '2:field:__agent_deck_session_fields' \
             '*:value:' && ret=0
@@ -533,6 +645,9 @@ __agent_deck_session() {
         switch-account)
           _arguments -s $__agent_deck_common_opts \
             '--no-restart[do not restart the session afterwards]' \
+            '--archive-destination[archive the destination session first]' \
+            '--no-settle[skip the settle step]' \
+            '--settle-strict[fail if settle does not complete cleanly]' \
             '1:session:__agent_deck_sessions' \
             '2:account:' && ret=0
           ;;
@@ -559,6 +674,14 @@ __agent_deck_session() {
             '--stream-idle[end the stream after this much silence]:duration:' \
             '--stream-char-budget[cap streamed characters]:chars:' \
             '--stream-tool-budget[cap streamed tool calls]:count:' \
+            '--codex-composer-fallback[fall back to composer on Codex]' \
+            '--ignore-budget[bypass the session budget limit]' \
+            '--image[attach an image]:image:_files' \
+            '--no-tag[do not tag the message]' \
+            '--queue[queue the message for later delivery]' \
+            '--queue-worker[queue as a worker message]' \
+            '--require-input-prompt[require an input prompt before sending]' \
+            '--source[message source identifier]:source:' \
             '1:session:__agent_deck_sessions' \
             '*:message:' && ret=0
           ;;
@@ -568,6 +691,7 @@ __agent_deck_session() {
             '--named-key[tmux named key (BSpace, Up, C-c, …)]:key:' \
             '--enter[send Enter]' \
             '--stream[stream the reply back]' \
+            '--primary[send to the primary pane]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         approve)
@@ -581,6 +705,9 @@ __agent_deck_session() {
           _arguments -s $__agent_deck_common_opts \
             '--copy[copy the response to the clipboard]' \
             '--pane[read the raw tmux pane instead of the transcript]' \
+            '--if-version[only return output if at this content version]:version:' \
+            '--max-tokens[cap the returned tokens]:count:' \
+            '--primary[return the primary pane output]' \
             '1:session:__agent_deck_sessions' && ret=0
           ;;
         children)
@@ -615,6 +742,130 @@ __agent_deck_session() {
             '1:session:__agent_deck_sessions' \
             '2:state:(on off)' && ret=0
           ;;
+        archive)
+          _arguments -s $__agent_deck_common_opts \
+            '--expected-content-version[only archive if at this version]:version:' \
+            '--expected-parent[only archive if this is the parent]:session:' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        annotate)
+          _arguments -s $__agent_deck_common_opts \
+            '--note-stdin[read note from stdin]' \
+            '--self[annotate the current session]' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        command)
+          _arguments -s $__agent_deck_common_opts \
+            '--background[run in the background]' \
+            '--dry-run[show what would run]' \
+            '--result-file[write result to file]:file:_files' \
+            '--timeout[command timeout]:duration:' \
+            '--wait-idle[wait for idle before running]:duration:' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        commands)
+          _arguments -s $__agent_deck_common_opts \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        context)
+          _arguments -s $__agent_deck_common_opts \
+            '--all[show all context items]' \
+            '--capabilities[include capabilities]' \
+            '--glossary[include glossary]' \
+            '--item[show a specific item]:item:' \
+            '--strict[fail on any context error]' \
+            '--tab[tab to focus]:tab:' \
+            '--timeout[context load timeout]:duration:' \
+            '--tolerance-pct[tolerance percentage]:pct:' \
+            '--tolerance-tokens[tolerance in tokens]:count:' \
+            '--verbose[verbose output]' \
+            '--verify[verify the context]' \
+            '--verify-ready-timeout[timeout waiting for ready]:duration:' \
+            '--verify-timeout[verify timeout]:duration:' \
+            '--yes[skip confirmation]' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        image-upload)
+          _arguments -s $__agent_deck_common_opts \
+            '--name[image name]:name:' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        metrics)
+          _arguments -s $__agent_deck_common_opts \
+            '--all[show all metrics]' \
+            '--since[show since this duration]:duration:' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        ownership)
+          _arguments -C \
+            '1:subcommand:((abandon\:"abandon ownership" inspect\:"inspect ownership" reconcile\:"reconcile ownership"))' \
+            '*:: :->oargs' && ret=0
+          [[ $state == oargs ]] && {
+            case ${words[1]} in
+              abandon|reconcile)
+                _arguments -s $__agent_deck_common_opts '--yes[skip confirmation]' \
+                  '1:session:__agent_deck_sessions' && ret=0 ;;
+              inspect)
+                _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0 ;;
+            esac
+          } ;;
+        primer)
+          _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        queue)
+          _arguments -C \
+            '1:subcommand:((list\:"list queued messages"))' '*:: :->qargs' && ret=0
+          [[ $state == qargs ]] && _arguments -s '--json[output as JSON]' && ret=0
+          ;;
+        recent)
+          _arguments -s $__agent_deck_common_opts \
+            '--limit[cap the number of results]:count:' && ret=0
+          ;;
+        send-status)
+          _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        send-worker)
+          _arguments -s \
+            '--target[target session]:session:__agent_deck_sessions' \
+            '--watch[watch expression]:expr:' && ret=0
+          ;;
+        switch)
+          _arguments -s $__agent_deck_common_opts \
+            '--archive-destination[archive the destination session first]' \
+            '--confirm-context-loss[confirm before losing context]' \
+            '--max-bytes[max context bytes to transfer]:bytes:' \
+            '--no-settle[skip the settle step]' \
+            '--no-start[do not start the new session]' \
+            '--settle-strict[fail if settle does not complete cleanly]' \
+            '--to-account[destination account]:account:' \
+            '--to-harness[destination harness]:harness:' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        switch-preview)
+          _arguments -s $__agent_deck_common_opts \
+            '--max-chars[max chars to include]:chars:' \
+            '--to-account[destination account]:account:' \
+            '--to-harness[destination harness]:harness:' \
+            '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        switch-settle)
+          _arguments -s $__agent_deck_common_opts \
+            '--account[account name]:account:' \
+            '--kick[kick the session]:session:' \
+            '--no-kick[do not kick]' \
+            '--old-pids[old PIDs to wait for]:pids:' \
+            '--restart[restart after settle]' \
+            '--timeout[settle timeout]:duration:' && ret=0
+          ;;
+        viewers)
+          _arguments -s $__agent_deck_common_opts '1:session:__agent_deck_sessions' && ret=0
+          ;;
+        window)
+          _arguments -C \
+            '1:subcommand:((close\:"close a TUI window"))' '*:: :->wargs' && ret=0
+          [[ $state == wargs ]] && {
+            _arguments -s '--force[force close]' '--json[output as JSON]' '--yes[skip confirmation]' && ret=0
+          } ;;
       esac
       ;;
   esac
@@ -846,7 +1097,7 @@ __agent_deck_worktree() {
     'info:show worktree info for a session'
     'finish:merge the branch, remove the worktree and delete the session'
     'cleanup:find and remove orphaned worktrees/sessions'
-    'trust-scripts:approve a repo'\''s .agent-deck/worktree-*.sh scripts'
+    'trust-hooks:approve a repo'\''s .agent-deck/worktree-*.sh hooks'
     'help:show worktree help'
   )
 
@@ -870,9 +1121,12 @@ __agent_deck_worktree() {
         cleanup)
           _arguments -s '--json[output as JSON]' '--force[remove without confirmation]' && ret=0
           ;;
-        # No --json here: trust-scripts parses only --revoke.
-        trust-scripts)
-          _arguments -s '--revoke[remove stored trust instead of granting it]' \
+        # trust-hooks: --hook selects a specific hook, --revoke removes trust, --yes skips prompts.
+        trust-hooks)
+          _arguments -s \
+            '--hook[hook name to trust/revoke]:hook:' \
+            '--revoke[remove stored trust instead of granting it]' \
+            '--yes[skip confirmation]' \
             '1:repository:_files -/' && ret=0
           ;;
       esac
@@ -910,14 +1164,35 @@ __agent_deck_remote() {
             '--profile[remote profile to use]:profile:' \
             '1:name:' '2:destination:_ssh_hosts' && ret=0
           ;;
-        remove|rm|update)
+        remove|rm)
           _arguments '1:remote:__agent_deck_remotes' && ret=0
           ;;
         list|ls)
-          _arguments -s '--json[output as JSON]' && ret=0
+          _arguments -s '--json[output as JSON]' \
+            '--check[check remote connectivity]' \
+            '--retry[retry failed remotes]' && ret=0
           ;;
         sessions)
-          _arguments -s '--json[output as JSON]' '1:remote:__agent_deck_remotes' && ret=0
+          _arguments -s '--json[output as JSON]' \
+            '--json-envelope[wrap output in a JSON envelope]' \
+            '--with-errors[include remotes that returned errors]' \
+            '1:remote:__agent_deck_remotes' && ret=0
+          ;;
+        update)
+          _arguments -s '--json[output as JSON]' \
+            '--all[update all remotes]' \
+            '--dry-run[show what would be installed]' \
+            '--force[force reinstall even if up to date]' \
+            '--from-build[install from a build path]:path:_files' \
+            '--host[limit to this host]:host:' \
+            '--install-timer[install the update timer on the remote]' \
+            '--outcome[expected outcome]:outcome:' \
+            '--reason[reason for the update]:reason:' \
+            '--remote[remote name]:remote:__agent_deck_remotes' \
+            '--remotes[number of remotes to update in parallel]:count:' \
+            '--summary[summary to record]:summary:' \
+            '--target[target version]:version:' \
+            '1:remote:__agent_deck_remotes' && ret=0
           ;;
         attach)
           _arguments '1:remote:__agent_deck_remotes' '2:session:__agent_deck_remote_sessions' && ret=0
@@ -950,6 +1225,10 @@ __agent_deck_conductor() {
     'list:list configured conductors'
     'move:move a conductor to another profile'
     'migrate-dir:relocate the conductor base dir'
+    'heartbeat-tick:deliver a heartbeat tick to a conductor'
+    'notify:send a notification to a conductor'
+    'outbox:inspect the conductor outbox'
+    'tier-filter:apply a tier filter to conductor messages'
     'help:show conductor help'
   )
 
@@ -1002,6 +1281,33 @@ __agent_deck_conductor() {
             '--from[current base dir to migrate from]:path:_files -/' \
             '--force[continue past conflicts]' \
             '1:new base dir:_files -/' && ret=0
+          ;;
+        heartbeat-tick)
+          _arguments -s \
+            '--commit-message[commit message for the tick]:message:' \
+            '--rules[rules markdown]:rules:' \
+            '1:conductor:__agent_deck_conductors' && ret=0
+          ;;
+        notify)
+          _arguments -s '--json[output as JSON]' \
+            '--conductor[conductor name]:conductor:__agent_deck_conductors' \
+            '--message-file[file with message to send]:file:_files' \
+            '--tier[tier to notify]:tier:' \
+            '1:conductor:__agent_deck_conductors' && ret=0
+          ;;
+        outbox)
+          _arguments -s '--json[output as JSON]' \
+            '--ack[acknowledge this message id]:id:' \
+            '--all[acknowledge all messages]' \
+            '--conductor[conductor name]:conductor:__agent_deck_conductors' \
+            '1:conductor:__agent_deck_conductors' && ret=0
+          ;;
+        tier-filter)
+          _arguments -s '--json[output as JSON]' \
+            '--ack[acknowledge this message]:id:' \
+            '--conductor[conductor name]:conductor:__agent_deck_conductors' \
+            '--reply-id[reply message id]:id:' \
+            '1:conductor:__agent_deck_conductors' && ret=0
           ;;
       esac
       ;;
@@ -1072,7 +1378,8 @@ __agent_deck_web() {
     '--push[enable web push notifications]' \
     '--push-test-every[send periodic push test notifications]:duration:' \
     '--push-vapid-subject[VAPID subject for web push]:subject:' \
-    '--insecure-bind[allow a non-loopback bind with no --token (unsafe)]'
+    '--insecure-bind[allow a non-loopback bind with no --token (unsafe)]' \
+    '*--allowed-host[additional allowed host]:host:'
 }
 
 __agent_deck_costs() {
@@ -1081,6 +1388,10 @@ __agent_deck_costs() {
 
   _arguments -C \
     '1:subcommand:((sync\:"sync cost data" summary\:"show a cost summary" recompute\:"recompute stored costs"))' \
+    '--days[number of days to include]:days:' \
+    '--json[output as JSON]' \
+    '--limit[cap the number of results]:count:' \
+    '--period[period string]:period:' \
     '*:: :->args' && ret=0
 
   case $state in
@@ -1107,6 +1418,7 @@ __agent_deck_watcher() {
     'status:show watcher status'
     'test:send a test event'
     'routes:list watcher routes'
+    'reload:reload watcher configuration'
     'install-skill:install the watcher skill'
     'help:show watcher help'
   )
@@ -1127,6 +1439,8 @@ __agent_deck_watcher() {
             '1:kind:(webhook ntfy github slack)' && ret=0
           ;;
         list|status|routes) _arguments -s '--json[output as JSON]' && ret=0 ;;
+        reload)
+          _arguments -s '--json[output as JSON]' '--timeout[reload timeout]:duration:' && ret=0 ;;
       esac
       ;;
   esac
@@ -1238,3 +1552,182 @@ __agent_deck_deepseek() {
 }
 
 _agent-deck "$@"
+
+# ---------------------------------------------------------------------------
+# New command handlers added in v1.16.30
+# ---------------------------------------------------------------------------
+
+__agent_deck_file() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  _arguments -C \
+    '1:subcommand:((bundle\:"bundle session files" read\:"read a file" roots\:"list root files"))' \
+    '*:: :->args' && ret=0
+  case $state in
+    args)
+      case ${words[1]} in
+        bundle) _arguments -s '--session[session id]:session:__agent_deck_sessions' && ret=0 ;;
+        read|roots) _arguments -s '--json[output as JSON]' && ret=0 ;;
+      esac ;;
+  esac
+  return ret
+}
+
+__agent_deck_browser() {
+  _arguments -s \
+    '--browser-profile[browser profile to use]:profile:' \
+    '--full[full page mode]' \
+    '--json[output as JSON]' \
+    '--new-tab[open in a new tab]' \
+    '--out[write output to file]:file:_files' \
+    '--outline[show page outline]' \
+    '--ref[page reference]:ref:' \
+    '--selector[CSS selector]:selector:' \
+    '--session[session id]:session:__agent_deck_sessions' \
+    '--submit[submit a form]' \
+    '--tab[tab title]:tab:' \
+    '--text[text to type]:text:' \
+    '--timeout[navigation timeout]:duration:' \
+    '1:url:'
+}
+
+__agent_deck_msg() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  _arguments -C \
+    '1:subcommand:((ack\:"acknowledge messages" export\:"export messages" stats\:"show message stats"))' \
+    '*:: :->args' && ret=0
+  case $state in
+    args)
+      case ${words[1]} in
+        ack)
+          _arguments -s '--json[output as JSON]' \
+            '--all[acknowledge all messages]' \
+            '--for[acknowledge for this session]:session:__agent_deck_sessions' && ret=0 ;;
+        export)
+          _arguments -s '--json[output as JSON]' \
+            '--for[export for this session]:session:__agent_deck_sessions' \
+            '--limit[cap results]:count:' && ret=0 ;;
+        stats)
+          _arguments -s '--json[output as JSON]' \
+            '--parent[parent session]:session:__agent_deck_sessions' \
+            '--since[since this duration]:duration:' && ret=0 ;;
+      esac ;;
+  esac
+  return ret
+}
+
+__agent_deck_open() {
+  _arguments -s \
+    '--browser-profile[browser profile]:profile:' \
+    '--session[session id]:session:__agent_deck_sessions' \
+    '--wait[wait duration]:duration:' \
+    '1:session:__agent_deck_sessions'
+}
+
+__agent_deck_triggers() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  _arguments -C \
+    '1:subcommand:((fires\:"list trigger fires" list\:"list triggers" run\:"run a trigger" scan\:"scan for triggers"))' \
+    '--for[triggers for this duration]:duration:' \
+    '--json[output as JSON]' \
+    '*:: :->args' && ret=0
+  case $state in
+    args)
+      case ${words[1]} in
+        fires)
+          _arguments -s '--json[output as JSON]' '--limit[cap results]:count:' && ret=0 ;;
+        list)
+          _arguments -s '--json[output as JSON]' \
+            '--all[include all triggers]' \
+            '--health[health filter]:health:' \
+            '--host[host filter]:host:' \
+            '--kind[kind filter]:kind:' \
+            '--session[session filter]:session:__agent_deck_sessions' && ret=0 ;;
+        run|scan)
+          _arguments -s '--json[output as JSON]' && ret=0 ;;
+      esac ;;
+  esac
+  return ret
+}
+
+__agent_deck_usage() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  _arguments -C \
+    '1:subcommand:((statusline\:"show a compact statusline"))' \
+    '--json[output as JSON]' \
+    '--refresh[force a refresh]' \
+    '*:: :->args' && ret=0
+  case $state in
+    args)
+      case ${words[1]} in
+        statusline)
+          _arguments -s '--json[output as JSON]' \
+            '--session[session id]:session:__agent_deck_sessions' && ret=0 ;;
+      esac ;;
+  esac
+  return ret
+}
+
+__agent_deck_config() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  _arguments -C \
+    '1:subcommand:((show\:"show configuration"))' \
+    '*:: :->args' && ret=0
+  case $state in
+    args)
+      _arguments -s \
+        '--effective[show effective (merged) config]' \
+        '--json[output as JSON]' \
+        '--yes[skip confirmation]' && ret=0 ;;
+  esac
+  return ret
+}
+
+# `agent-deck events` — exposed as top-level `agent-deck` command in main.go's switch.
+__agent_deck_events() {
+  local curcontext=$curcontext state line ret=1
+  typeset -A opt_args
+  _arguments -C \
+    '1:subcommand:((events\:"access the agent-deck event bus"))' \
+    '*:: :->args' && ret=0
+  [[ $state == args ]] && {
+    case ${words[1]} in
+      events)
+        _arguments -C \
+          '1:operation:((follow\:"follow the event stream" publish\:"publish an event" stats\:"show bus stats"))' \
+          '*:: :->eargs' && ret=0
+        [[ $state == eargs ]] && {
+          case ${words[1]} in
+            follow)
+              _arguments -s \
+                '--bus[bus name]:bus:' \
+                '--json[output as JSON]' \
+                '--jsonl[output as JSON lines]' \
+                '--kind[event kind filter]:kind:' \
+                '--profile[profile]:profile:__agent_deck_profiles' \
+                '--read-only[read-only mode]' \
+                '--session[session filter]:session:__agent_deck_sessions' && ret=0 ;;
+            publish)
+              _arguments -s \
+                '--data[event data (JSON)]:data:' \
+                '--data-file[read data from file]:file:_files' \
+                '--from-remote[publish from a remote]' \
+                '--json[output as JSON]' \
+                '--kind[event kind]:kind:' \
+                '--profile[profile]:profile:__agent_deck_profiles' \
+                '--session[session id]:session:__agent_deck_sessions' && ret=0 ;;
+            stats)
+              _arguments -s \
+                '--bus[bus name]:bus:' \
+                '--json[output as JSON]' \
+                '--read-only[read-only mode]' && ret=0 ;;
+          esac
+        } ;;
+    esac
+  }
+  return ret
+}

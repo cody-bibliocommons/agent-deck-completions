@@ -1,35 +1,57 @@
-[commands] --help --version -h -v accounts add agent agents codex-hooks codex-notify conductor costs creds-refresh cursor-hooks debug-dump deepseek doctor feedback fleet gemini-hooks group help hermes-hooks hook-handler hooks inbox launch list ls mcp mcp-proxy migrate-paths mv notify-daemon oc openclaw plugin profile remote remote-agent remove rename rm run-task session skill status telegram-doctor telemetry try uninstall update version watcher web worktree wt
-[tools] claude codex copilot crush cursor deepseek gemini hermes opencode pi
-[accounts] json:bool
-[add] Q:bool account:string attach:bool b:bool c:string cmd:string create-dir:bool g:string gemini-yolo:bool group:string json:bool location:string model:string new-branch:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool p:string parent:string q:bool quick:bool quiet:bool remote-path:string resume-session:string sandbox:bool sandbox-image:string ssh:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string yolo:bool
+[commands] file
+[tools] claude codex copilot crush cursor deepseek gemini hermes muse omp opencode opencode2 pi
+[accounts] harness:string json:bool
+[add] Q:bool account:string attach:bool b:bool c:string capabilities:bool cmd:string create-dir:bool effort:string g:string gemini-yolo:bool group:string json:bool location:string model:string new-branch:bool no-channel-link:bool no-identity:bool no-parent:bool no-title-sync:bool no-transition-notify:bool p:string parent:string q:bool quick:bool quiet:bool remote-path:string resume-session:string sandbox:bool sandbox-image:string ssh:string startup-query:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string yolo:bool
 [agent adopt] json:bool manager:string write:bool
 [agent show] json:bool
+[agent-deck events follow] bus:string json:bool jsonl:bool kind:string profile:string read-only:bool session:string
+[agent-deck events publish] data:string data-file:string from-remote:bool json:bool kind:string profile:string session:string
+[agent-deck events stats] bus:string json:bool read-only:bool
 [agents] json:bool no-remote:bool
+[browser ] browser-profile:string full:bool json:bool new-tab:bool out:string outline:bool ref:string selector:string session:string submit:bool tab:string text:string timeout:duration
+[conductor heartbeat-tick] commit-message:string rules:string
 [conductor list] json:bool profile:string
 [conductor migrate-dir] apply:bool force:bool from:string json:bool
 [conductor move] force:bool json:bool q:bool quiet:bool to-profile:string
+[conductor notify] conductor:string json:bool message-file:string tier:string
+[conductor outbox] ack:var all:bool conductor:string json:bool
 [conductor setup] agent:string claude-md:string description:string env:var env-file:string heartbeat:bool heartbeat-idle-minutes:int heartbeat-rules-md:string instructions-md:string json:bool no-clear-on-compact:bool no-heartbeat:bool policy-md:string shared-claude-md:string shared-instructions-md:string shared-policy-md:string
 [conductor status] json:bool
 [conductor teardown] all:bool json:bool remove:bool
+[conductor tier-filter] ack:string conductor:string json:bool reply-id:string
+[config show] effective:bool json:bool yes:bool
+[costs ] days:int json:bool limit:int period:string
 [costs summary] json:bool
-[creds-refresh] config-dir:var endpoint:string interval:duration once:bool threshold:duration
+[daemon ] json:bool
 [doctor] json:bool
+[file bundle] session:string
+[file read] json:bool
+[file roots] json:bool
 [fleet recover] auth-halt-after:int dry-run:bool group-by-credential:bool jitter:float64 json:bool limit:int max-dead-boots:int max-failures:int q:bool quiet:bool spacing:duration verify-poll:duration verify-timeout:duration yes:bool
 [fleet status] group-by-credential:bool json:bool q:bool quiet:bool
 [group change] json:bool q:bool quiet:bool
 [group create] default-path:string json:bool max-concurrent:int parent:string q:bool quiet:bool
 [group delete] force:bool json:bool q:bool quiet:bool
-[group list] json:bool q:bool quiet:bool
+[group list] json:bool json:var q:bool quiet:bool
 [group move] force:bool json:bool q:bool quiet:bool to-profile:string
 [group reorder] d:bool down:bool json:bool p:int position:int q:bool quiet:bool u:bool up:bool
 [group show] json:bool q:bool quiet:bool resolved:bool
 [group update] clear-default-path:bool default-path:string json:bool max-concurrent:int q:bool quiet:bool
+[harness ] json:bool
+[health] json:bool since:duration
 [inbox]
-[inbox drain] json:bool
-[inbox export] json:bool
+[inbox cursor] json:bool
+[inbox dead-letter ] json:bool store:string
+[inbox dead-letter purge] json:bool older-than:duration yes:bool
+[inbox dead-letter retry] json:bool
+[inbox drain] json:bool strict:bool
+[inbox export] after:string json:bool profile:string with-writer:bool
+[inbox peek] json:bool
+[inbox stats] all:bool json:bool reset:bool
 [inbox writer-status] json:bool
-[launch] account:string assert-done:bool b:bool c:string cmd:string g:string group:string idle-timeout:string inherit-group:bool inherit-telegram-env:bool json:bool location:string m:string message:string message-file:string model:string new-branch:bool no-assert-done:bool no-channel-link:bool no-parent:bool no-title-sync:bool no-transition-notify:bool no-wait:bool p:string parent:string q:bool quiet:bool resume-session:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string wrapper:string
-[list] all:bool json:bool
+[launch] account:string assert-done:bool b:bool c:string capabilities:bool cmd:string create-dir:bool effort:string g:string group:string idle-timeout:string ignore-budget:bool inherit-group:bool inherit-telegram-env:bool json:bool location:string m:string message:string message-file:string model:string new-branch:bool no-assert-done:bool no-channel-link:bool no-identity:bool no-parent:bool no-title-sync:bool no-transition-notify:bool no-wait:bool p:string parent:string q:bool quiet:bool resume-session:string sandbox:bool sandbox-image:string startup-query:string t:string title:string title-lock:bool tmux-socket:string w:string worktree:string wrapper:string yolo:bool
+[limits] json:bool
+[list] all:bool include-superseded:bool json:bool json:var
 [mcp attach] global:bool json:bool q:bool quiet:bool restart:bool
 [mcp attached] json:bool q:bool quiet:bool
 [mcp detach] global:bool json:bool q:bool quiet:bool restart:bool
@@ -38,44 +60,69 @@
 [mcp server status] json:bool q:bool quiet:bool
 [mcp server stop] json:bool q:bool quiet:bool
 [migrate-paths] dry-run:bool force:bool
+[msg ack] all:bool for:string json:bool
+[msg export] for:string json:bool limit:int
+[msg stats] json:bool parent:string since:duration
 [notify-daemon] once:bool
+[open] browser-profile:string session:string wait:duration
 [openclaw bridge] agent:string name:string
 [openclaw list] json:bool
 [openclaw send] agent:string
 [openclaw sync] json:bool
 [remote add] agent-deck-path:string profile:string
 [remote drain] into:string json:bool
-[remote list] json:bool
-[remote sessions] json:bool
+[remote list] check:bool json:bool retry:bool
+[remote sessions] json:bool json-envelope:bool with-errors:bool
+[remote update] all:bool dry-run:bool force:bool from-build:string host:string install-timer:bool json:bool outcome:string reason:string remote:string remotes:int summary:string target:string
 [remove] json:bool q:bool quiet:bool
 [rename] json:bool q:bool quiet:bool
+[session annotate] json:bool note-stdin:bool q:bool quiet:bool self:bool
 [session approve] choice:string json:bool q:bool timeout:duration
-[session archive] json:bool q:bool quiet:bool
+[session archive] expected-content-version:string expected-parent:string json:bool q:bool quiet:bool
 [session attach]
 [session children] follow:bool heartbeat:duration interval:duration json:bool q:bool quiet:bool until-done:bool
 [session cleanup] days:int dry-run:bool force:bool include-archived:bool json:bool prune-worktree:bool q:bool quiet:bool y:bool yes:bool
+[session command] background:bool dry-run:bool json:bool q:bool result-file:string timeout:duration wait-idle:duration
+[session commands] json:bool q:bool
+[session context] all:bool capabilities:bool glossary:bool item:string json:bool q:bool quiet:bool strict:bool tab:string timeout:duration tolerance-pct:float64 tolerance-tokens:int verbose:bool verify:bool verify-ready-timeout:duration verify-timeout:duration yes:bool
 [session current] json:bool q:bool quiet:bool
-[session focus] attach:bool
+[session focus] attach:bool json:bool remote:string
 [session fork] b:bool g:string group:string json:bool new-branch:bool q:bool quiet:bool sandbox:bool sandbox-image:string t:string title:string w:string with-state:bool with-state-and-gitignored:bool worktree:string
 [session handoff] json:bool max-chars:int out:string
+[session image-upload] json:bool name:string
+[session metrics] all:bool json:bool since:duration
 [session move] copy:bool force:bool group:string json:bool no-restart:bool q:bool quiet:bool to-profile:string
-[session output] copy:bool json:bool pane:bool q:bool quiet:bool
+[session output] copy:bool if-version:string json:bool max-tokens:int pane:bool primary:bool q:bool quiet:bool
+[session ownership abandon] json:bool yes:bool
+[session ownership inspect] json:bool
+[session ownership reconcile] json:bool yes:bool
+[session primer] json:bool
+[session queue] json:bool
+[session queue list] json:bool
+[session recent] json:bool limit:int
 [session remove] all-errored:bool force:bool json:bool prune-worktree:bool q:bool quiet:bool
-[session restart] all:bool env:var force:bool json:bool q:bool quiet:bool
-[session revive] all:bool json:bool name:string q:bool quiet:bool
+[session restart] all:bool env:var force:bool if-idle:bool json:bool json:var q:bool quiet:bool
+[session revive] all:bool delay:duration json:bool name:string q:bool quiet:bool
 [session search] days:int json:bool limit:int q:bool quiet:bool tier:string
-[session send] defer-if-busy:bool defer-timeout:duration draft:bool json:bool message-file:string no-wait:bool q:bool stream:bool stream-char-budget:int stream-idle:duration stream-tool-budget:int timeout:duration wait:bool
-[session send-keys] enter:bool json:bool named-key:string q:bool stream:bool text:string
-[session set] json:bool q:bool quiet:bool
+[session send] codex-composer-fallback:bool defer-if-busy:bool defer-timeout:duration draft:bool ignore-budget:bool image:var json:bool message-file:string no-tag:bool no-wait:bool q:bool queue:bool queue-worker:bool require-input-prompt:bool source:string stream:bool stream-char-budget:int stream-idle:duration stream-tool-budget:int timeout:duration wait:bool
+[session send-keys] enter:bool json:bool named-key:string primary:bool q:bool stream:bool text:string
+[session send-status] json:bool
+[session send-worker] target:string watch:string
+[session set] intended:string intended-for:duration json:bool q:bool quiet:bool
 [session set-parent] inherit-group:bool json:bool q:bool quiet:bool
 [session set-title-lock] json:bool q:bool quiet:bool
 [session set-transition-notify] json:bool q:bool quiet:bool
 [session show] json:bool q:bool quiet:bool
-[session start] attach:bool json:bool m:string message:string message-file:string no-wait:bool q:bool quiet:bool yolo:bool
-[session stop] json:bool q:bool quiet:bool
-[session switch-account] json:bool no-restart:bool q:bool quiet:bool
+[session start] attach:bool ignore-budget:bool json:bool json:var m:string message:string message-file:string no-wait:bool q:bool quiet:bool yolo:bool
+[session stop] json:bool json:var q:bool quiet:bool
+[session switch] archive-destination:bool confirm-context-loss:bool json:bool max-bytes:int no-settle:bool no-start:bool settle-strict:bool to-account:string to-harness:string
+[session switch-account] archive-destination:bool json:bool no-restart:bool no-settle:bool q:bool quiet:bool settle-strict:bool
+[session switch-preview] json:bool max-chars:int to-account:string to-harness:string
+[session switch-settle] account:string json:bool kick:string no-kick:bool old-pids:string q:bool restart:bool timeout:duration
 [session unarchive] json:bool q:bool quiet:bool
 [session unset-parent] json:bool q:bool quiet:bool
+[session viewers] json:bool
+[session window close] force:bool json:bool yes:bool
 [skill attach] json:bool q:bool quiet:bool restart:bool source:string
 [skill attached] json:bool q:bool quiet:bool
 [skill detach] json:bool q:bool quiet:bool restart:bool source:string
@@ -84,20 +131,29 @@
 [skill source list] json:bool q:bool quiet:bool
 [skill source remove] json:bool q:bool quiet:bool
 [status] json:bool q:bool quiet:bool stale:bool threshold:string v:bool verbose:bool
+[system stats] json:bool
 [telegram-doctor] json:bool quiet:bool
+[triggers ] for:duration json:bool
+[triggers fires] json:bool limit:int
+[triggers list] all:bool health:string host:string json:bool kind:string session:string
+[triggers run] json:bool
+[triggers scan] json:bool
 [try] c:string cmd:string json:bool l:bool list:bool no-session:bool q:bool quiet:bool sandbox:bool
 [uninstall] dry-run:bool keep-data:bool keep-tmux-config:bool y:bool
-[update] check:bool version:string
+[update] check:bool check-now:bool dry-run:bool ensure-timer:bool install-timer:bool json:bool timer-status:bool trigger:string unattended:bool uninstall-timer:bool version:string
+[usage] json:bool refresh:bool
+[usage statusline] json:bool session:string
 [watcher create] name:string port:int secret:string secret-file:string topic:string
 [watcher list] json:bool
+[watcher reload] json:bool timeout:duration
 [watcher routes] json:bool
 [watcher start]
 [watcher status] json:bool
 [watcher stop]
 [watcher test]
-[web] insecure-bind:bool listen:string no-tui:bool push:bool push-test-every:duration push-vapid-subject:string read-only:bool token:string token-file:string
+[web] allowed-host:var insecure-bind:bool listen:string no-tui:bool push:bool push-test-every:duration push-vapid-subject:string read-only:bool token:string token-file:string
 [worktree cleanup] force:bool json:bool
 [worktree finish] force:bool into:string json:bool keep-branch:bool no-merge:bool
 [worktree info] json:bool
 [worktree list] json:bool
-[worktree trust-scripts] revoke:bool
+[worktree trust-hooks] hook:string revoke:bool yes:bool
